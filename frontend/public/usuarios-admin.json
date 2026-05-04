@@ -1,0 +1,14 @@
+[
+  {
+    "nombre": "Jose Manuel Bedoya",
+    "correo": "josem.bedoyam@uqvirtual.edu.co",
+    "password": "beta2026",
+    "rol": "admin"
+  },
+  {
+    "nombre": "Juan David Tapiero",
+    "correo": "juand.tapierom@uqvirtual.edu.co",
+    "password": "beta2026",
+    "rol": "admin"
+  }
+]

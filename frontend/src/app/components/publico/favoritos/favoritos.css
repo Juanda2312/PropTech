@@ -1,0 +1,37 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.pagina { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; min-height: 100vh; }
+.navbar { display: flex; align-items: center; justify-content: space-between; padding: 0 40px; height: 70px; background: #0B1929; position: sticky; top: 0; z-index: 100; }
+.navbar-logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 700; color: #fff; }
+.gold { color: #D4AF37; }
+.navbar-links { display: flex; gap: 28px; }
+.navbar-links a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; }
+.navbar-links a.active, .navbar-links a:hover { color: #D4AF37; }
+.btn-admin { background: #D4AF37; color: #0B1929; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; }
+.contenido { padding: 40px; }
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 26px; font-weight: 700; color: #0B1929; }
+.page-header p { font-size: 14px; color: #888; margin-top: 6px; }
+.historial-tabs { display: flex; gap: 8px; margin-bottom: 24px; }
+.historial-tabs button { padding: 8px 20px; border-radius: 20px; border: 1px solid #ddd; background: #fff; font-size: 13px; cursor: pointer; color: #666; }
+.historial-tabs button.active { background: #0B1929; color: #fff; border-color: #0B1929; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.card { background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #eee; }
+.card-img { height: 160px; background: #0B1929; display: flex; align-items: flex-start; padding: 12px; }
+.card-badge { background: #D4AF37; color: #0B1929; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+.card-body { padding: 16px; }
+.card-name { font-size: 14px; font-weight: 600; color: #0B1929; }
+.card-addr { font-size: 12px; color: #888; margin-top: 4px; }
+.card-price { font-size: 16px; font-weight: 700; color: #0B1929; margin-top: 10px; }
+.card-actions { display: flex; gap: 8px; margin-top: 12px; }
+.btn-ver { flex: 1; background: #0B1929; color: #fff; border: none; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+.btn-quitar { flex: 1; background: transparent; color: #e74c3c; border: 1px solid #e74c3c; padding: 8px; border-radius: 8px; font-size: 12px; cursor: pointer; }
+.empty { text-align: center; padding: 60px; color: #888; }
+.empty a { color: #D4AF37; }
+.historial-list { display: flex; flex-direction: column; gap: 12px; }
+.historial-item { display: flex; gap: 16px; align-items: center; background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #eee; }
+.hi-img { width: 80px; height: 64px; border-radius: 8px; background: #0B1929; flex-shrink: 0; }
+.hi-info { flex: 1; }
+.hi-name { font-size: 14px; font-weight: 600; color: #0B1929; }
+.hi-addr { font-size: 12px; color: #888; margin-top: 2px; }
+.hi-price { font-size: 14px; font-weight: 700; color: #D4AF37; margin-top: 4px; }
+.hi-fecha { font-size: 11px; color: #aaa; }

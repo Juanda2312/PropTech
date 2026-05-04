@@ -1,0 +1,115 @@
+<div class="pagina">
+
+  <nav class="navbar">
+    <div class="navbar-logo">
+      <svg width="36" height="36" viewBox="0 0 52 52">
+        <rect width="52" height="52" rx="12" fill="#D4AF37"/>
+        <polygon points="26,10 44,26 38,26 38,42 14,42 14,26 8,26" fill="#0B1929"/>
+        <rect x="21" y="30" width="10" height="12" rx="2" fill="#D4AF37"/>
+      </svg>
+      <span>Be<span class="gold">Ta</span> Inmobiliaria</span>
+    </div>
+    <div class="navbar-links">
+      <a routerLink="/">Inicio</a>
+      <a routerLink="/catalogo">Venta</a>
+      <a routerLink="/catalogo">Arriendo</a>
+      <a routerLink="/recomendaciones">Recomendaciones</a>
+      <a routerLink="/favoritos">Favoritos</a>
+    </div>
+    <div class="navbar-actions">
+      <span class="idioma">ES | EN</span>
+        <a routerLink="/login" class="btn-login">Iniciar sesión</a>
+        <a routerLink="/admin/login" class="btn-admin">Panel Admin</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <h1>Encuentra tu hogar ideal<br>en el Quindío</h1>
+      <p>Más de 500 inmuebles disponibles en Armenia y la región</p>
+      <div class="buscador">
+        <select>
+          <option>Tipo de inmueble</option>
+          <option>Apartamento</option>
+          <option>Casa</option>
+          <option>Local comercial</option>
+          <option>Oficina</option>
+          <option>Lote</option>
+          <option>Bodega</option>
+        </select>
+        <select>
+          <option>Tipo de negocio</option>
+          <option>Venta</option>
+          <option>Arriendo</option>
+        </select>
+        <select>
+          <option>Zona</option>
+          <option>Norte</option>
+          <option>Sur</option>
+          <option>Centro</option>
+        </select>
+        <input type="number" placeholder="Precio máximo"/>
+        <button routerLink="/catalogo">Buscar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <h2>Inmuebles destacados</h2>
+    <div class="cards">
+      <div class="card" *ngFor="let item of inmuebles">
+        <div class="card-img" [style.background-image]="'url(' + item.imagen + ')'" style="background-size:cover;background-position:center">
+          <div class="card-badge">{{item.tipo}}</div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">{{item.nombre}}</div>
+          <div class="card-addr">{{item.ciudad}}</div>
+          <div class="card-info">
+            <span>{{item.habitaciones}} hab</span>
+            <span>{{item.area}} m²</span>
+            <span>{{item.banos}} baños</span>
+          </div>
+          <div class="card-price">{{item.precio | currency:'COP':'symbol':'1.0-0'}}</div>
+          <div class="card-finalidad">{{item.finalidad}}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion stats">
+    <div class="stat">
+      <div class="stat-num">500+</div>
+      <div class="stat-label">Inmuebles disponibles</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">1.200+</div>
+      <div class="stat-label">Clientes satisfechos</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">15+</div>
+      <div class="stat-label">Años de experiencia</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">30+</div>
+      <div class="stat-label">Asesores expertos</div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-left">
+      <div class="footer-logo">Be<span class="gold">Ta</span> Inmobiliaria</div>
+      <div class="footer-sub">Tapiero & Bedoya · Armenia, Quindío</div>
+      <div class="footer-redes">
+        <a href="#">Instagram</a>
+        <a href="#">WhatsApp</a>
+      </div>
+    </div>
+    <div class="footer-right">
+      <div>beta.inmobiliaria&#64;gmail.com</div>
+      <div>+57 315 830 5274</div>
+      <div>Uniquindio, hangar Ingenieria, Armenia</div>
+    </div>
+  </footer>
+
+</div>

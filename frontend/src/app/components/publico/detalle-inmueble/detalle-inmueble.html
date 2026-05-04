@@ -1,0 +1,133 @@
+<div class="pagina">
+  <nav class="navbar">
+    <div class="navbar-logo">
+      <svg width="36" height="36" viewBox="0 0 52 52">
+        <rect width="52" height="52" rx="12" fill="#D4AF37"/>
+        <polygon points="26,10 44,26 38,26 38,42 14,42 14,26 8,26" fill="#0B1929"/>
+        <rect x="21" y="30" width="10" height="12" rx="2" fill="#D4AF37"/>
+      </svg>
+      <span>Be<span class="gold">Ta</span> Inmobiliaria</span>
+    </div>
+    <div class="navbar-links">
+      <a routerLink="/">Inicio</a>
+      <a routerLink="/catalogo">Catálogo</a>
+      <a routerLink="/recomendaciones">Recomendaciones</a>
+      <a routerLink="/favoritos">Favoritos</a>
+    </div>
+    <div class="navbar-actions">
+      <a routerLink="/admin/login" class="btn-admin">Panel Admin</a>
+    </div>
+  </nav>
+
+  <div class="contenido">
+    <div class="breadcrumb">
+      <a routerLink="/">Inicio</a> /
+      <a routerLink="/catalogo">Catálogo</a> /
+      <span>{{inmueble.nombre}}</span>
+    </div>
+
+    <div class="detalle-layout">
+      <div class="detalle-izq">
+        <div class="img-principal" [style.background-image]="'url(' + inmueble.imagen + ')'"
+             style="background-size:cover;background-position:center">
+          <div class="img-badge">{{inmueble.finalidad}}</div>
+        </div>
+        <div class="img-galeria">
+          <div class="img-mini" *ngFor="let img of inmueble.galeria"
+               [style.background-image]="'url(' + img + ')'"
+               style="background-size:cover;background-position:center"></div>
+        </div>
+      </div>
+
+      <div class="detalle-der">
+        <div class="det-tipo">{{inmueble.tipo}}</div>
+        <h1 class="det-nombre">{{inmueble.nombre}}</h1>
+        <div class="det-addr">{{inmueble.direccion}} · {{inmueble.ciudad}}</div>
+        <div class="det-precio">{{inmueble.precio | currency:'COP':'symbol':'1.0-0'}}</div>
+        <div class="det-finalidad">{{inmueble.finalidad}}</div>
+
+        <div class="det-specs">
+          <div class="spec" *ngIf="inmueble.habitaciones > 0">
+            <div class="spec-val">{{inmueble.habitaciones}}</div>
+            <div class="spec-label">Habitaciones</div>
+          </div>
+          <div class="spec" *ngIf="inmueble.banos > 0">
+            <div class="spec-val">{{inmueble.banos}}</div>
+            <div class="spec-label">Baños</div>
+          </div>
+          <div class="spec">
+            <div class="spec-val">{{inmueble.area}}</div>
+            <div class="spec-label">m²</div>
+          </div>
+          <div class="spec">
+            <div class="spec-val">{{inmueble.estrato}}</div>
+            <div class="spec-label">Estrato</div>
+          </div>
+        </div>
+
+        <div class="det-seccion">
+          <h3>Descripción</h3>
+          <p>{{inmueble.descripcion}}</p>
+        </div>
+
+        <div class="det-seccion">
+          <h3>Características</h3>
+          <div class="caracteristicas">
+            <div class="carac" *ngFor="let c of inmueble.caracteristicas">✓ {{c}}</div>
+          </div>
+        </div>
+
+        <div class="det-seccion">
+          <h3>Asesor responsable</h3>
+          <div class="asesor-card">
+            <div class="asesor-avatar">{{inmueble.asesor.iniciales}}</div>
+            <div class="asesor-info">
+              <div class="asesor-nombre">{{inmueble.asesor.nombre}}</div>
+              <div class="asesor-zona">{{inmueble.asesor.zona}}</div>
+              <div class="asesor-tel">{{inmueble.asesor.telefono}}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="det-acciones">
+          <button class="btn-visita" (click)="mostrarFormVisita = true">Agendar visita</button>
+          <button class="btn-fav" (click)="toggleFav()">
+            {{esFavorito ? '♥ Guardado' : '♡ Guardar'}}
+          </button>
+          <a class="btn-whatsapp" href="https://wa.me/573154015585?text=Hola, me interesa el inmueble {{inmueble.nombre}}" target="_blank">
+            WhatsApp
+          </a>
+        </div>
+
+        <div class="form-visita" *ngIf="mostrarFormVisita">
+          <h3>Agendar visita</h3>
+          <div class="form-grupo">
+            <label>Su nombre</label>
+            <input type="text" [(ngModel)]="visita.cliente" placeholder="Nombre completo"/>
+          </div>
+          <div class="form-grupo">
+            <label>Teléfono</label>
+            <input type="text" [(ngModel)]="visita.telefono" placeholder="+57 300 000 0000"/>
+          </div>
+          <div class="form-grupo">
+            <label>Fecha</label>
+            <input type="date" [(ngModel)]="visita.fecha"/>
+          </div>
+          <div class="form-grupo">
+            <label>Hora</label>
+            <input type="time" [(ngModel)]="visita.hora"/>
+          </div>
+          <div class="form-grupo">
+            <label>Observaciones</label>
+            <textarea [(ngModel)]="visita.observaciones" placeholder="Alguna nota adicional..."></textarea>
+          </div>
+          <div class="form-acciones">
+            <button class="btn-confirmar" (click)="agendarVisita()">Confirmar visita</button>
+            <button class="btn-cancelar" (click)="mostrarFormVisita = false">Cancelar</button>
+          </div>
+          <div class="exito" *ngIf="visitaAgendada">¡Visita agendada exitosamente! El asesor se comunicará pronto.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

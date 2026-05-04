@@ -1,0 +1,59 @@
+<div class="admin-layout">
+  <app-sidebar></app-sidebar>
+  <div class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Comportamiento comercial inusual</div>
+      <div class="topbar-sub">Detección automática de patrones atípicos</div>
+    </div>
+
+    <div class="contenido">
+      <div class="alertas-grid">
+        <div class="alerta-card" *ngFor="let a of comportamientos" [class]="a.nivel">
+          <div class="alerta-header">
+            <div class="alerta-nivel">{{a.nivel | uppercase}}</div>
+            <div class="alerta-fecha">{{a.fecha}}</div>
+          </div>
+          <div class="alerta-titulo">{{a.titulo}}</div>
+          <div class="alerta-desc">{{a.descripcion}}</div>
+          <div class="alerta-entidad">Entidad: {{a.entidad}}</div>
+          <div class="alerta-acciones">
+            <button class="btn-revisar" (click)="marcarRevisado(a)">
+              {{a.revisado ? 'Revisado' : 'Marcar revisado'}}
+            </button>
+            <span class="alerta-estado" [class]="a.revisado ? 'ok' : 'pendiente'">
+              {{a.revisado ? 'Atendido' : 'Pendiente'}}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <div class="panel-header">
+          <span class="panel-title">Historial de eventos inusuales</span>
+        </div>
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Entidad</th>
+              <th>Descripción</th>
+              <th>Nivel</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let e of historial">
+              <td>{{e.fecha}}</td>
+              <td>{{e.tipo}}</td>
+              <td>{{e.entidad}}</td>
+              <td>{{e.descripcion}}</td>
+              <td><span class="nivel-badge" [class]="e.nivel">{{e.nivel}}</span></td>
+              <td><span class="estado-badge" [class]="e.estado">{{e.estado}}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

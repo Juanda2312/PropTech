@@ -1,0 +1,99 @@
+<div class="admin-layout">
+  <app-sidebar></app-sidebar>
+  <div class="admin-main">
+    <div class="topbar">
+      <div class="topbar-title">Gestión de asesores</div>
+      <div class="topbar-sub">Administre los asesores inmobiliarios</div>
+      <button class="btn-nuevo" (click)="mostrarForm = true">+ Nuevo asesor</button>
+    </div>
+
+    <div class="contenido">
+      <div class="filtros-bar">
+        <input type="text" [(ngModel)]="busqueda" placeholder="Buscar por nombre o ID..." (input)="filtrar()"/>
+        <select [(ngModel)]="filtroZona" (change)="filtrar()">
+          <option value="">Todas las zonas</option>
+          <option>Norte</option>
+          <option>Sur</option>
+          <option>Centro</option>
+          <option>Rural</option>
+        </select>
+      </div>
+
+      <div class="asesores-grid">
+        <div class="asesor-card" *ngFor="let a of asesoresFiltrados">
+          <div class="asesor-header">
+            <div class="asesor-avatar">{{a.iniciales}}</div>
+            <div class="asesor-info">
+              <div class="asesor-nombre">{{a.nombre}}</div>
+              <div class="asesor-zona">{{a.zona}}</div>
+              <div class="asesor-especialidad">{{a.especialidad}}</div>
+            </div>
+          </div>
+          <div class="asesor-stats">
+            <div class="stat">
+              <div class="stat-val">{{a.inmueblesAsignados}}</div>
+              <div class="stat-label">Inmuebles</div>
+            </div>
+            <div class="stat">
+              <div class="stat-val">{{a.visitasAgendadas}}</div>
+              <div class="stat-label">Visitas</div>
+            </div>
+            <div class="stat">
+              <div class="stat-val">{{a.cierres}}</div>
+              <div class="stat-label">Cierres</div>
+            </div>
+          </div>
+          <div class="asesor-contacto">
+            <div>{{a.correo}}</div>
+            <div>{{a.telefono}}</div>
+          </div>
+          <div class="asesor-acciones">
+            <button class="btn-edit" (click)="editar(a)">Editar</button>
+            <button class="btn-del" (click)="eliminar(a)">Eliminar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" *ngIf="mostrarForm" (click)="cerrarForm()">
+        <div class="modal" (click)="$event.stopPropagation()">
+          <h3>{{modoEdicion ? 'Editar asesor' : 'Nuevo asesor'}}</h3>
+          <div class="form-grid">
+            <div class="form-grupo">
+              <label>Identificación</label>
+              <input [(ngModel)]="form.id" placeholder="1234567890"/>
+            </div>
+            <div class="form-grupo">
+              <label>Nombre completo</label>
+              <input [(ngModel)]="form.nombre" placeholder="Juan David Tapiero"/>
+            </div>
+            <div class="form-grupo">
+              <label>Correo</label>
+              <input [(ngModel)]="form.correo" placeholder="correo@email.com"/>
+            </div>
+            <div class="form-grupo">
+              <label>Teléfono</label>
+              <input [(ngModel)]="form.telefono" placeholder="+57 300 000 0000"/>
+            </div>
+            <div class="form-grupo">
+              <label>Especialidad</label>
+              <input [(ngModel)]="form.especialidad" placeholder="Apartamentos y casas"/>
+            </div>
+            <div class="form-grupo">
+              <label>Zona asignada</label>
+              <select [(ngModel)]="form.zona">
+                <option>Norte</option>
+                <option>Sur</option>
+                <option>Centro</option>
+                <option>Rural</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-acciones">
+            <button class="btn-guardar" (click)="guardar()">Guardar</button>
+            <button class="btn-cancelar" (click)="cerrarForm()">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
