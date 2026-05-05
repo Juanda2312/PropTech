@@ -1,13 +1,24 @@
 package co.edu.uniquindio.poo.PropTech.structures;
 
+import lombok.Getter;
+
 /**
  *
  * @param <T>
  */
+@Getter
 public class Stack<T> {
 
-	private Node<T> top;
-	private int size;
+    /**
+     * -- GETTER --
+     *
+     */
+    private Node<T> top;
+    /**
+     * -- GETTER --
+     *
+     */
+    private int size;
 
 	/**
 	 * Checks if the Stack is empty.
@@ -62,21 +73,7 @@ public class Stack<T> {
 		return top.getData();
 	}
 
-	/**
-	 * @return the top node
-	 */
-	public Node<T> getTop() {
-		return top;
-	}
-
-	/**
-	 * @return the size
-	 */
-	public int getSize() {
-		return size;
-	}
-
-	/**
+    /**
 	 * Adds another Stack to this Stack.
 	 * @param stack stack to add
 	 */

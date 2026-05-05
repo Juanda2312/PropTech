@@ -1,5 +1,10 @@
 package co.edu.uniquindio.poo.PropTech.structures;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class Node<T> {
 
 	private Node<T> next;
@@ -28,23 +33,6 @@ public class Node<T> {
 	
 
 	//Metodos get y set de la clase Node
-	
-	public Node<T> getNext() {
-		return next;
-	}
 
 
-	public void setNext(Node<T> next) {
-		this.next = next;
-	}
-
-
-	public T getData() {
-		return data;
-	}
-
-
-	public void setData(T data) {
-		this.data = data;
-	}
 }

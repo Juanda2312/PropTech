@@ -12,7 +12,6 @@ public class Queue<T> {
     /**
      * -- GETTER --
      *
-     * @return the size
      */
     @Getter
     public int size;
