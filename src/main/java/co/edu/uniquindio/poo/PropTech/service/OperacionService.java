@@ -1,5 +1,9 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.EstadoInvalidoException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.dto.OperacionDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
@@ -27,7 +31,11 @@ public class OperacionService {
     public Operacion registrar(OperacionDTO dto, Inmueble inmueble,
                                Cliente cliente, Asesor asesor) {
         if (operacionRepository.existsById(dto.getIdOperacion())) {
-            throw new RuntimeException("Ya existe una operación con id: " + dto.getIdOperacion());
+            throw new EntidadDuplicadaException("Operacion", dto.getIdOperacion());
+        }
+        if (dto.getValorAcordado() <= 0) {
+            throw new ReglaNegocioException(
+                    "El valor acordado de la operación debe ser mayor a cero.");
         }
 
         Operacion operacion = new Operacion(
@@ -36,7 +44,6 @@ public class OperacionService {
                 dto.getValorAcordado(), dto.getComision(), dto.getEstadoProceso()
         );
 
-        // El inmueble deja de estar disponible al registrar venta o arriendo
         if (dto.getTipoOperacion() == TipoOperacion.VENTA
                 || dto.getTipoOperacion() == TipoOperacion.ARRIENDO) {
             inmueble.setDisponibilidad(false);
@@ -47,12 +54,25 @@ public class OperacionService {
 
     public void cancelar(String idOperacion) {
         Operacion operacion = buscarPorId(idOperacion);
+        if ("CERRADO".equals(operacion.getEstadoProceso())) {
+            throw new EstadoInvalidoException("Operacion", operacion.getEstadoProceso(), "CANCELAR");
+        }
+        if ("CANCELADO".equals(operacion.getEstadoProceso())) {
+            throw new EstadoInvalidoException("Operacion", operacion.getEstadoProceso(), "CANCELAR");
+        }
         operacion.setEstadoProceso("CANCELADO");
         operacion.getInmueble().setDisponibilidad(true);
     }
 
     public void cerrar(String idOperacion) {
-        buscarPorId(idOperacion).setEstadoProceso("CERRADO");
+        Operacion operacion = buscarPorId(idOperacion);
+        if ("CERRADO".equals(operacion.getEstadoProceso())) {
+            throw new EstadoInvalidoException("Operacion", operacion.getEstadoProceso(), "CERRAR");
+        }
+        if ("CANCELADO".equals(operacion.getEstadoProceso())) {
+            throw new EstadoInvalidoException("Operacion", operacion.getEstadoProceso(), "CERRAR");
+        }
+        operacion.setEstadoProceso("CERRADO");
     }
 
     // ----------------------------------------------------------------
@@ -61,7 +81,7 @@ public class OperacionService {
 
     public Operacion buscarPorId(String id) {
         return operacionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Operación no encontrada: " + id));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Operacion", id));
     }
 
     public List<Operacion> obtenerTodas() {

@@ -1,5 +1,7 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.EstadoInvalidoException;
 import co.edu.uniquindio.poo.PropTech.model.entity.EventoInusual;
 import co.edu.uniquindio.poo.PropTech.model.enums.EstadoEvento;
 import co.edu.uniquindio.poo.PropTech.model.enums.NivelAtencion;
@@ -32,7 +34,6 @@ public class EventoInusualService {
         );
         eventoRepository.save(evento);
 
-        // Todo evento inusual genera automáticamente una alerta
         alertaService.generar("ALT-" + idEvento, "EVENTO_INUSUAL",
                 "Detectado: " + tipo + " — " + descripcion, nivel);
 
@@ -41,7 +42,11 @@ public class EventoInusualService {
 
     public void cerrar(String idEvento) {
         EventoInusual evento = eventoRepository.findById(idEvento)
-                .orElseThrow(() -> new RuntimeException("Evento no encontrado: " + idEvento));
+                .orElseThrow(() -> new EntidadNoEncontradaException("EventoInusual", idEvento));
+        if (evento.getEstadoEvento() == EstadoEvento.CERRADO) {
+            throw new EstadoInvalidoException(
+                    "EventoInusual", evento.getEstadoEvento().name(), "CERRAR");
+        }
         evento.setEstadoEvento(EstadoEvento.CERRADO);
     }
 

@@ -1,5 +1,8 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.EstadoInvalidoException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.entity.Alerta;
 import co.edu.uniquindio.poo.PropTech.model.enums.NivelAtencion;
 import co.edu.uniquindio.poo.PropTech.repository.AlertaRepository;
@@ -28,13 +31,17 @@ public class AlertaService {
 
     public void cerrar(String idAlerta) {
         Alerta alerta = alertaRepository.findById(idAlerta)
-                .orElseThrow(() -> new RuntimeException("Alerta no encontrada: " + idAlerta));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Alerta", idAlerta));
+        if (alerta.isCerrada()) {
+            throw new EstadoInvalidoException("Alerta", "CERRADA", "CERRAR");
+        }
         alerta.setCerrada(true);
     }
 
     public Alerta procesarSiguiente() {
         return alertaRepository.pollPendiente()
-                .orElseThrow(() -> new RuntimeException("No hay alertas pendientes"));
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No hay alertas pendientes en la cola para procesar."));
     }
 
     // ----------------------------------------------------------------

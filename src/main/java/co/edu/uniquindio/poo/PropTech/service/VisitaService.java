@@ -1,5 +1,10 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.EstadoInvalidoException;
+import co.edu.uniquindio.poo.PropTech.exception.InmuebleNoDisponibleException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.dto.VisitaDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
@@ -26,10 +31,10 @@ public class VisitaService {
 
     public Visita programar(VisitaDTO dto, Cliente cliente, Inmueble inmueble, Asesor asesor) {
         if (visitaRepository.existsById(dto.getIdVisita())) {
-            throw new RuntimeException("Ya existe una visita con id: " + dto.getIdVisita());
+            throw new EntidadDuplicadaException("Visita", dto.getIdVisita());
         }
         if (!inmueble.isDisponibilidad()) {
-            throw new RuntimeException("El inmueble no está disponible para visitas");
+            throw new InmuebleNoDisponibleException(inmueble.getCodigo());
         }
 
         Visita visita = new Visita(
@@ -42,17 +47,33 @@ public class VisitaService {
     }
 
     public void confirmar(String idVisita) {
-        buscarPorId(idVisita).setEstado(EstadoVisita.CONFIRMADA);
+        Visita visita = buscarPorId(idVisita);
+        if (visita.getEstado() == EstadoVisita.CANCELADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "CONFIRMAR");
+        }
+        if (visita.getEstado() == EstadoVisita.REALIZADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "CONFIRMAR");
+        }
+        visita.setEstado(EstadoVisita.CONFIRMADA);
     }
 
     public void cancelar(String idVisita, String observacion) {
         Visita visita = buscarPorId(idVisita);
+        if (visita.getEstado() == EstadoVisita.REALIZADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "CANCELAR");
+        }
         visita.setEstado(EstadoVisita.CANCELADA);
         visita.setObservaciones(observacion);
     }
 
     public void reprogramar(String idVisita, VisitaDTO dto) {
         Visita visita = buscarPorId(idVisita);
+        if (visita.getEstado() == EstadoVisita.CANCELADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "REPROGRAMAR");
+        }
+        if (visita.getEstado() == EstadoVisita.REALIZADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "REPROGRAMAR");
+        }
         visita.setFecha(dto.getFecha());
         visita.setHora(dto.getHora());
         visita.setEstado(EstadoVisita.REPROGRAMADA);
@@ -61,6 +82,9 @@ public class VisitaService {
 
     public void marcarRealizada(String idVisita, String observaciones) {
         Visita visita = buscarPorId(idVisita);
+        if (visita.getEstado() == EstadoVisita.CANCELADA) {
+            throw new EstadoInvalidoException("Visita", visita.getEstado().name(), "MARCAR_REALIZADA");
+        }
         visita.setEstado(EstadoVisita.REALIZADA);
         visita.setObservaciones(observaciones);
     }
@@ -71,7 +95,8 @@ public class VisitaService {
 
     public Visita procesarSiguientePendiente() {
         return visitaRepository.pollPendiente()
-                .orElseThrow(() -> new RuntimeException("No hay visitas pendientes en la cola"));
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No hay visitas pendientes en la cola para procesar."));
     }
 
     public int totalPendientes() {
@@ -84,7 +109,7 @@ public class VisitaService {
 
     public Visita buscarPorId(String id) {
         return visitaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Visita no encontrada: " + id));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Visita", id));
     }
 
     public List<Visita> obtenerTodas() {

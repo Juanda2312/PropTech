@@ -1,5 +1,7 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
 import co.edu.uniquindio.poo.PropTech.model.dto.ClienteDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
@@ -24,21 +26,20 @@ public class ClienteService {
 
     public Cliente registrar(ClienteDTO dto) {
         if (clienteRepository.existsById(dto.getId())) {
-            throw new RuntimeException("Ya existe un cliente con id: " + dto.getId());
+            throw new EntidadDuplicadaException("Cliente", dto.getId());
         }
         return clienteRepository.save(mapearDesdeDTO(dto));
     }
 
     public Cliente buscarPorId(String id) {
         return clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente no encontrado: " + id));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Cliente", id));
     }
 
     public void actualizar(String id, ClienteDTO dto) {
-        Cliente anterior   = buscarPorId(id);
+        Cliente anterior    = buscarPorId(id);
         Cliente actualizado = mapearDesdeDTO(dto);
         actualizado.setId(id);
-        // Preservamos el historial de interacciones
         actualizado.setInmueblesConsultados(anterior.getInmueblesConsultados());
         actualizado.setPropiedadesVisitadas(anterior.getPropiedadesVisitadas());
         actualizado.setInmueblesDescartados(anterior.getInmueblesDescartados());
@@ -54,8 +55,7 @@ public class ClienteService {
     }
 
     // ----------------------------------------------------------------
-    // Historial de interacción — lógica de negocio aquí,
-    // los datos viven en el objeto Cliente dentro del repositorio
+    // Historial de interacción
     // ----------------------------------------------------------------
 
     public void registrarInmuebleConsultado(String idCliente, Inmueble inmueble) {

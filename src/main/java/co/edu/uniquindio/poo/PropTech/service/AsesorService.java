@@ -1,5 +1,7 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
 import co.edu.uniquindio.poo.PropTech.model.dto.AsesorDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
@@ -25,7 +27,7 @@ public class AsesorService {
 
     public Asesor registrar(AsesorDTO dto) {
         if (asesorRepository.existsById(dto.getId())) {
-            throw new RuntimeException("Ya existe un asesor con id: " + dto.getId());
+            throw new EntidadDuplicadaException("Asesor", dto.getId());
         }
         return asesorRepository.save(
                 new Asesor(dto.getId(), dto.getNombre(), dto.getContacto(), dto.getEspecialidadZona())
@@ -34,7 +36,7 @@ public class AsesorService {
 
     public Asesor buscarPorId(String id) {
         return asesorRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Asesor no encontrado: " + id));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Asesor", id));
     }
 
     public void actualizar(String id, AsesorDTO dto) {
@@ -42,8 +44,6 @@ public class AsesorService {
         existente.setNombre(dto.getNombre());
         existente.setContacto(dto.getContacto());
         existente.setEspecialidadZona(dto.getEspecialidadZona());
-        // No hay cambio en el criterio de orden del AVL (cierres),
-        // así que no necesitamos llamar a updateCierres
     }
 
     // ----------------------------------------------------------------
@@ -61,7 +61,6 @@ public class AsesorService {
     public void registrarCierre(String idAsesor, Operacion operacion) {
         Asesor asesor = buscarPorId(idAsesor);
         asesor.getCierresRealizados().addLast(operacion);
-        // Notificamos al repositorio para que rebalancee el AVL
         asesorRepository.updateCierres(asesor);
     }
 

@@ -1,5 +1,8 @@
 package co.edu.uniquindio.poo.PropTech.service;
 
+import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
+import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.dto.InmuebleDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
@@ -25,14 +28,14 @@ public class InmuebleService {
 
     public Inmueble registrar(InmuebleDTO dto, Asesor asesor) {
         if (inmuebleRepository.existsById(dto.getCodigo())) {
-            throw new RuntimeException("Ya existe un inmueble con código: " + dto.getCodigo());
+            throw new EntidadDuplicadaException("Inmueble", dto.getCodigo());
         }
         return inmuebleRepository.save(mapearDesdeDTO(dto, asesor));
     }
 
     public Inmueble buscarPorCodigo(String codigo) {
         return inmuebleRepository.findById(codigo)
-                .orElseThrow(() -> new RuntimeException("Inmueble no encontrado: " + codigo));
+                .orElseThrow(() -> new EntidadNoEncontradaException("Inmueble", codigo));
     }
 
     public void actualizar(String codigo, InmuebleDTO dto, Asesor asesor) {
@@ -49,15 +52,15 @@ public class InmuebleService {
 
     public void deshacerUltimoCambio() {
         Inmueble snapshot = inmuebleRepository.popSnapshot()
-                .orElseThrow(() -> new RuntimeException("No hay cambios que deshacer"));
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No hay cambios pendientes para deshacer en el historial de inmuebles."));
         Inmueble actual = buscarPorCodigo(snapshot.getCodigo());
         aplicarCambios(actual, snapshot);
         inmuebleRepository.update(actual, actual);
     }
 
     // ----------------------------------------------------------------
-    // Consultas y filtros — el servicio solo decide qué consultar,
-    // el repositorio sabe cómo hacerlo
+    // Consultas y filtros
     // ----------------------------------------------------------------
 
     public List<Inmueble> obtenerTodos() {
@@ -126,7 +129,6 @@ public class InmuebleService {
         destino.setAsesor(asesor);
     }
 
-    // Sobrecarga para restaurar desde snapshot (sin DTO)
     private void aplicarCambios(Inmueble destino, Inmueble origen) {
         destino.setDireccion(origen.getDireccion());
         destino.setCiudad(origen.getCiudad());
