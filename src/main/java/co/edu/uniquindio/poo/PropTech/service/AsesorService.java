@@ -5,42 +5,36 @@ import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.entity.Operacion;
 import co.edu.uniquindio.poo.PropTech.model.entity.Visita;
-import co.edu.uniquindio.poo.PropTech.structures.AVLTree;
-import co.edu.uniquindio.poo.PropTech.structures.HashTable;
-import lombok.Getter;
+import co.edu.uniquindio.poo.PropTech.repository.AsesorRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class AsesorService {
 
-    private final HashTable<String, Asesor> tablaPorId = new HashTable<>();
+    private final AsesorRepository asesorRepository;
 
-    // Ordenados por número de cierres para rankings de efectividad
-    @Getter
-    private final AVLTree<AsesorWrapper> arbolPorCierres = new AVLTree<>();
+    public AsesorService(AsesorRepository asesorRepository) {
+        this.asesorRepository = asesorRepository;
+    }
 
     // ----------------------------------------------------------------
     // CRUD
     // ----------------------------------------------------------------
 
     public Asesor registrar(AsesorDTO dto) {
-        if (tablaPorId.containsKey(dto.getId())) {
+        if (asesorRepository.existsById(dto.getId())) {
             throw new RuntimeException("Ya existe un asesor con id: " + dto.getId());
         }
-
-        Asesor asesor = new Asesor(dto.getId(), dto.getNombre(), dto.getContacto(), dto.getEspecialidadZona());
-        tablaPorId.put(asesor.getId(), asesor);
-        arbolPorCierres.insert(new AsesorWrapper(asesor));
-        return asesor;
+        return asesorRepository.save(
+                new Asesor(dto.getId(), dto.getNombre(), dto.getContacto(), dto.getEspecialidadZona())
+        );
     }
 
     public Asesor buscarPorId(String id) {
-        Asesor asesor = tablaPorId.get(id);
-        if (asesor == null) throw new RuntimeException("Asesor no encontrado: " + id);
-        return asesor;
+        return asesorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Asesor no encontrado: " + id));
     }
 
     public void actualizar(String id, AsesorDTO dto) {
@@ -48,6 +42,8 @@ public class AsesorService {
         existente.setNombre(dto.getNombre());
         existente.setContacto(dto.getContacto());
         existente.setEspecialidadZona(dto.getEspecialidadZona());
+        // No hay cambio en el criterio de orden del AVL (cierres),
+        // así que no necesitamos llamar a updateCierres
     }
 
     // ----------------------------------------------------------------
@@ -64,80 +60,26 @@ public class AsesorService {
 
     public void registrarCierre(String idAsesor, Operacion operacion) {
         Asesor asesor = buscarPorId(idAsesor);
-
-        // Actualizamos el árbol porque el criterio de orden cambia
-        arbolPorCierres.remove(new AsesorWrapper(asesor));
         asesor.getCierresRealizados().addLast(operacion);
-        arbolPorCierres.insert(new AsesorWrapper(asesor));
+        // Notificamos al repositorio para que rebalancee el AVL
+        asesorRepository.updateCierres(asesor);
     }
 
     public int contarCarga(String idAsesor) {
         Asesor asesor = buscarPorId(idAsesor);
-        return asesor.getVisitasAgendadas().getSize() + asesor.getInmueblesAsignados().getSize();
+        return asesor.getVisitasAgendadas().getSize()
+                + asesor.getInmueblesAsignados().getSize();
     }
 
     // ----------------------------------------------------------------
-    // Rankings
+    // Consultas y rankings
     // ----------------------------------------------------------------
-
-    public List<Asesor> obtenerRankingPorCierres() {
-        List<Asesor> ranking = new ArrayList<>();
-        recolectarInOrderDesc(arbolPorCierres.getRoot(), ranking);
-        return ranking;
-    }
 
     public List<Asesor> obtenerTodos() {
-        List<Asesor> todos = new ArrayList<>();
-        recolectarInOrder(arbolPorCierres.getRoot(), todos);
-        return todos;
+        return asesorRepository.findAll();
     }
 
-    // Recorrido inverso para ranking descendente (más cierres primero)
-    private void recolectarInOrderDesc(AVLTree.AVLNode<AsesorWrapper> nodo, List<Asesor> lista) {
-        if (nodo == null) return;
-        recolectarInOrderDesc(nodo.getRight(), lista);
-        lista.add(nodo.getData().getAsesor());
-        recolectarInOrderDesc(nodo.getLeft(), lista);
-    }
-
-    private void recolectarInOrder(AVLTree.AVLNode<AsesorWrapper> nodo, List<Asesor> lista) {
-        if (nodo == null) return;
-        recolectarInOrder(nodo.getLeft(), lista);
-        lista.add(nodo.getData().getAsesor());
-        recolectarInOrder(nodo.getRight(), lista);
-    }
-
-    // ----------------------------------------------------------------
-    // Wrapper para AVL ordenado por número de cierres
-    // ----------------------------------------------------------------
-
-    @Getter
-    public static class AsesorWrapper implements Comparable<AsesorWrapper> {
-        private final Asesor asesor;
-
-        public AsesorWrapper(Asesor asesor) {
-            this.asesor = asesor;
-        }
-
-        @Override
-        public int compareTo(AsesorWrapper otro) {
-            int cmp = Integer.compare(
-                    this.asesor.getCierresRealizados().getSize(),
-                    otro.asesor.getCierresRealizados().getSize()
-            );
-            return cmp != 0 ? cmp : this.asesor.getId().compareTo(otro.asesor.getId());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof AsesorWrapper)) return false;
-            return this.asesor.getId().equals(((AsesorWrapper) o).asesor.getId());
-        }
-
-        @Override
-        public int hashCode() {
-            return asesor.getId().hashCode();
-        }
+    public List<Asesor> obtenerRankingPorCierres() {
+        return asesorRepository.findAllOrdenadosPorCierres();
     }
 }

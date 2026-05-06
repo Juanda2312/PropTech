@@ -4,71 +4,58 @@ import co.edu.uniquindio.poo.PropTech.model.dto.ClienteDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.entity.Recomendacion;
-import co.edu.uniquindio.poo.PropTech.structures.AVLTree;
-import co.edu.uniquindio.poo.PropTech.structures.HashTable;
-import lombok.Getter;
+import co.edu.uniquindio.poo.PropTech.repository.ClienteRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ClienteService {
 
-    // Acceso O(1) por identificación
-    private final HashTable<String, Cliente> tablaPorId = new HashTable<>();
+    private final ClienteRepository clienteRepository;
 
-    // Ordenamiento por presupuesto para recomendaciones y segmentación
-    @Getter
-    private final AVLTree<ClienteWrapper> arbolPorPresupuesto = new AVLTree<>();
+    public ClienteService(ClienteRepository clienteRepository) {
+        this.clienteRepository = clienteRepository;
+    }
 
     // ----------------------------------------------------------------
     // CRUD
     // ----------------------------------------------------------------
 
     public Cliente registrar(ClienteDTO dto) {
-        if (tablaPorId.containsKey(dto.getId())) {
+        if (clienteRepository.existsById(dto.getId())) {
             throw new RuntimeException("Ya existe un cliente con id: " + dto.getId());
         }
-
-        Cliente cliente = mapearDesdeDTO(dto);
-        tablaPorId.put(cliente.getId(), cliente);
-        arbolPorPresupuesto.insert(new ClienteWrapper(cliente));
-        return cliente;
+        return clienteRepository.save(mapearDesdeDTO(dto));
     }
 
     public Cliente buscarPorId(String id) {
-        Cliente cliente = tablaPorId.get(id);
-        if (cliente == null) throw new RuntimeException("Cliente no encontrado: " + id);
-        return cliente;
+        return clienteRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cliente no encontrado: " + id));
     }
 
     public void actualizar(String id, ClienteDTO dto) {
-        Cliente existente = buscarPorId(id);
-
-        arbolPorPresupuesto.remove(new ClienteWrapper(existente));
-
-        existente.setNombre(dto.getNombre());
-        existente.setCorreo(dto.getCorreo());
-        existente.setTelefono(dto.getTelefono());
-        existente.setTipoCliente(dto.getTipoCliente());
-        existente.setPresupuesto(dto.getPresupuesto());
-        existente.setZonasInteres(dto.getZonasInteres());
-        existente.setTipoInmuebleDeseado(dto.getTipoInmuebleDeseado());
-        existente.setHabitacionesMinimas(dto.getHabitacionesMinimas());
-        existente.setEstadoBusqueda(dto.getEstadoBusqueda());
-
-        arbolPorPresupuesto.insert(new ClienteWrapper(existente));
+        Cliente anterior   = buscarPorId(id);
+        Cliente actualizado = mapearDesdeDTO(dto);
+        actualizado.setId(id);
+        // Preservamos el historial de interacciones
+        actualizado.setInmueblesConsultados(anterior.getInmueblesConsultados());
+        actualizado.setPropiedadesVisitadas(anterior.getPropiedadesVisitadas());
+        actualizado.setInmueblesDescartados(anterior.getInmueblesDescartados());
+        actualizado.setInmueblesGuardados(anterior.getInmueblesGuardados());
+        actualizado.setInmueblesNegociados(anterior.getInmueblesNegociados());
+        actualizado.setListaRecomendaciones(anterior.getListaRecomendaciones());
+        clienteRepository.update(anterior, actualizado);
     }
 
     public void eliminar(String id) {
-        Cliente cliente = buscarPorId(id);
-        tablaPorId.remove(id);
-        arbolPorPresupuesto.remove(new ClienteWrapper(cliente));
+        buscarPorId(id);
+        clienteRepository.delete(id);
     }
 
     // ----------------------------------------------------------------
-    // Historial de interacción
+    // Historial de interacción — lógica de negocio aquí,
+    // los datos viven en el objeto Cliente dentro del repositorio
     // ----------------------------------------------------------------
 
     public void registrarInmuebleConsultado(String idCliente, Inmueble inmueble) {
@@ -100,20 +87,19 @@ public class ClienteService {
     // ----------------------------------------------------------------
 
     public List<Cliente> obtenerTodos() {
-        List<Cliente> todos = new ArrayList<>();
-        recolectarInOrder(arbolPorPresupuesto.getRoot(), todos);
-        return todos;
+        return clienteRepository.findAll();
     }
 
-    private void recolectarInOrder(AVLTree.AVLNode<ClienteWrapper> nodo, List<Cliente> lista) {
-        if (nodo == null) return;
-        recolectarInOrder(nodo.getLeft(), lista);
-        lista.add(nodo.getData().getCliente());
-        recolectarInOrder(nodo.getRight(), lista);
+    public List<Cliente> obtenerOrdenadosPorPresupuesto() {
+        return clienteRepository.findAllOrdenadosPorPresupuesto();
+    }
+
+    public List<Cliente> obtenerPorPresupuestoMaximo(double max) {
+        return clienteRepository.findByPresupuestoMaximo(max);
     }
 
     // ----------------------------------------------------------------
-    // Helpers
+    // Helper privado
     // ----------------------------------------------------------------
 
     private Cliente mapearDesdeDTO(ClienteDTO dto) {
@@ -123,34 +109,5 @@ public class ClienteService {
                 dto.getTipoInmuebleDeseado(), dto.getHabitacionesMinimas(),
                 dto.getEstadoBusqueda()
         );
-    }
-
-    // Wrapper para poder insertar Cliente en el AVL ordenado por presupuesto
-    @Getter
-    public static class ClienteWrapper implements Comparable<ClienteWrapper> {
-        private final Cliente cliente;
-
-        public ClienteWrapper(Cliente cliente) {
-            this.cliente = cliente;
-        }
-
-        @Override
-        public int compareTo(ClienteWrapper otro) {
-            int cmp = Double.compare(this.cliente.getPresupuesto(), otro.cliente.getPresupuesto());
-            // Si el presupuesto es igual, desambiguamos por id para no perder nodos
-            return cmp != 0 ? cmp : this.cliente.getId().compareTo(otro.cliente.getId());
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof ClienteWrapper)) return false;
-            return this.cliente.getId().equals(((ClienteWrapper) o).cliente.getId());
-        }
-
-        @Override
-        public int hashCode() {
-            return cliente.getId().hashCode();
-        }
     }
 }

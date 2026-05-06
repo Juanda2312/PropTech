@@ -5,192 +5,93 @@ import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.enums.FinalidadInmueble;
 import co.edu.uniquindio.poo.PropTech.model.enums.TipoInmueble;
-import co.edu.uniquindio.poo.PropTech.structures.AVLTree;
-import co.edu.uniquindio.poo.PropTech.structures.HashTable;
-import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
-import co.edu.uniquindio.poo.PropTech.structures.Stack;
-import lombok.Getter;
+import co.edu.uniquindio.poo.PropTech.repository.InmuebleRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class InmuebleService {
 
-    // Acceso O(1) por código
-    private final HashTable<String, Inmueble> tablaPorCodigo = new HashTable<>();
+    private final InmuebleRepository inmuebleRepository;
 
-    // Ordenamiento y búsqueda por rango de precio
-    @Getter
-    private final AVLTree<Inmueble> arbolPorPrecio = new AVLTree<>();
-
-    // Historial de cambios para deshacer (pila por inmueble sería ideal,
-    // pero usamos una pila global de snapshots simplificada)
-    private final Stack<Inmueble> historialCambios = new Stack<>();
+    public InmuebleService(InmuebleRepository inmuebleRepository) {
+        this.inmuebleRepository = inmuebleRepository;
+    }
 
     // ----------------------------------------------------------------
     // CRUD
     // ----------------------------------------------------------------
 
     public Inmueble registrar(InmuebleDTO dto, Asesor asesor) {
-        if (tablaPorCodigo.containsKey(dto.getCodigo())) {
-            throw new RuntimeException("Ya existe un inmueble con el código: " + dto.getCodigo());
+        if (inmuebleRepository.existsById(dto.getCodigo())) {
+            throw new RuntimeException("Ya existe un inmueble con código: " + dto.getCodigo());
         }
-
-        Inmueble inmueble = mapearDesdeDTO(dto, asesor);
-        tablaPorCodigo.put(inmueble.getCodigo(), inmueble);
-        arbolPorPrecio.insert(inmueble);
-        return inmueble;
+        return inmuebleRepository.save(mapearDesdeDTO(dto, asesor));
     }
 
     public Inmueble buscarPorCodigo(String codigo) {
-        Inmueble inmueble = tablaPorCodigo.get(codigo);
-        if (inmueble == null) {
-            throw new RuntimeException("Inmueble no encontrado: " + codigo);
-        }
-        return inmueble;
+        return inmuebleRepository.findById(codigo)
+                .orElseThrow(() -> new RuntimeException("Inmueble no encontrado: " + codigo));
     }
 
     public void actualizar(String codigo, InmuebleDTO dto, Asesor asesor) {
         Inmueble existente = buscarPorCodigo(codigo);
-
-        // Guardamos snapshot antes de modificar para poder deshacer
-        historialCambios.push(copiarSnapshot(existente));
-
-        // Sacamos del árbol antes de modificar el precio (la clave de ordenamiento)
-        arbolPorPrecio.remove(existente);
-
-        existente.setDireccion(dto.getDireccion());
-        existente.setCiudad(dto.getCiudad());
-        existente.setBarrio(dto.getBarrio());
-        existente.setTipoInmueble(dto.getTipoInmueble());
-        existente.setFinalidad(dto.getFinalidad());
-        existente.setPrecio(dto.getPrecio());
-        existente.setArea(dto.getArea());
-        existente.setHabitaciones(dto.getHabitaciones());
-        existente.setBanos(dto.getBanos());
-        existente.setEstado(dto.getEstado());
-        existente.setDisponibilidad(dto.isDisponibilidad());
-        existente.setAsesor(asesor);
-
-        arbolPorPrecio.insert(existente);
+        Inmueble snapshot  = copiarSnapshot(existente);
+        aplicarCambios(existente, dto, asesor);
+        inmuebleRepository.update(snapshot, existente);
     }
 
     public void eliminar(String codigo) {
-        Inmueble inmueble = buscarPorCodigo(codigo);
-        tablaPorCodigo.remove(codigo);
-        arbolPorPrecio.remove(inmueble);
+        buscarPorCodigo(codigo);
+        inmuebleRepository.delete(codigo);
     }
-
-    // ----------------------------------------------------------------
-    // Deshacer último cambio (Stack)
-    // ----------------------------------------------------------------
 
     public void deshacerUltimoCambio() {
-        if (historialCambios.isEmpty()) {
-            throw new RuntimeException("No hay cambios que deshacer");
-        }
-
-        Inmueble snapshot = historialCambios.pop();
+        Inmueble snapshot = inmuebleRepository.popSnapshot()
+                .orElseThrow(() -> new RuntimeException("No hay cambios que deshacer"));
         Inmueble actual = buscarPorCodigo(snapshot.getCodigo());
-
-        arbolPorPrecio.remove(actual);
-
-        actual.setDireccion(snapshot.getDireccion());
-        actual.setCiudad(snapshot.getCiudad());
-        actual.setBarrio(snapshot.getBarrio());
-        actual.setTipoInmueble(snapshot.getTipoInmueble());
-        actual.setFinalidad(snapshot.getFinalidad());
-        actual.setPrecio(snapshot.getPrecio());
-        actual.setArea(snapshot.getArea());
-        actual.setHabitaciones(snapshot.getHabitaciones());
-        actual.setBanos(snapshot.getBanos());
-        actual.setEstado(snapshot.getEstado());
-        actual.setDisponibilidad(snapshot.isDisponibilidad());
-        actual.setAsesor(snapshot.getAsesor());
-
-        arbolPorPrecio.insert(actual);
+        aplicarCambios(actual, snapshot);
+        inmuebleRepository.update(actual, actual);
     }
 
     // ----------------------------------------------------------------
-    // Filtros
-    // ----------------------------------------------------------------
-
-    public List<Inmueble> filtrarPorTipo(TipoInmueble tipo) {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            if (i.getTipoInmueble() == tipo) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    public List<Inmueble> filtrarPorFinalidad(FinalidadInmueble finalidad) {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            if (i.getFinalidad() == finalidad) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    public List<Inmueble> filtrarPorCiudad(String ciudad) {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            if (i.getCiudad().equalsIgnoreCase(ciudad)) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    public List<Inmueble> filtrarDisponibles() {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            if (i.isDisponibilidad()) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    public List<Inmueble> filtrarPorRangoPrecio(double min, double max) {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            if (i.getPrecio() >= min && i.getPrecio() <= max) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    // Filtro combinado general
-    public List<Inmueble> filtrarCombinado(TipoInmueble tipo, FinalidadInmueble finalidad,
-                                           String ciudad, double precioMax, int habitacionesMin) {
-        List<Inmueble> resultado = new ArrayList<>();
-        for (Inmueble i : obtenerTodos()) {
-            boolean cumple = true;
-            if (tipo != null && i.getTipoInmueble() != tipo) cumple = false;
-            if (finalidad != null && i.getFinalidad() != finalidad) cumple = false;
-            if (ciudad != null && !i.getCiudad().equalsIgnoreCase(ciudad)) cumple = false;
-            if (precioMax > 0 && i.getPrecio() > precioMax) cumple = false;
-            if (habitacionesMin > 0 && i.getHabitaciones() < habitacionesMin) cumple = false;
-            if (cumple) resultado.add(i);
-        }
-        return resultado;
-    }
-
-    // ----------------------------------------------------------------
-    // Helpers
+    // Consultas y filtros — el servicio solo decide qué consultar,
+    // el repositorio sabe cómo hacerlo
     // ----------------------------------------------------------------
 
     public List<Inmueble> obtenerTodos() {
-        // Recorremos la HashTable a través del árbol (que tiene todos los inmuebles)
-        // Usamos una lista temporal de Java para retornar la colección
-        List<Inmueble> todos = new ArrayList<>();
-        recolectarInOrder(arbolPorPrecio.getRoot(), todos);
-        return todos;
+        return inmuebleRepository.findAll();
     }
 
-    private void recolectarInOrder(AVLTree.AVLNode<Inmueble> nodo, List<Inmueble> lista) {
-        if (nodo == null) return;
-        recolectarInOrder(nodo.getLeft(), lista);
-        lista.add(nodo.getData());
-        recolectarInOrder(nodo.getRight(), lista);
+    public List<Inmueble> filtrarDisponibles() {
+        return inmuebleRepository.findByDisponibilidad(true);
     }
+
+    public List<Inmueble> filtrarPorTipo(TipoInmueble tipo) {
+        return inmuebleRepository.findByTipo(tipo);
+    }
+
+    public List<Inmueble> filtrarPorFinalidad(FinalidadInmueble finalidad) {
+        return inmuebleRepository.findByFinalidad(finalidad);
+    }
+
+    public List<Inmueble> filtrarPorCiudad(String ciudad) {
+        return inmuebleRepository.findByCiudad(ciudad);
+    }
+
+    public List<Inmueble> filtrarPorRangoPrecio(double min, double max) {
+        return inmuebleRepository.findByRangoPrecio(min, max);
+    }
+
+    public List<Inmueble> filtrarCombinado(TipoInmueble tipo, FinalidadInmueble finalidad,
+                                           String ciudad, double precioMax, int habitacionesMin) {
+        return inmuebleRepository.findByCombinado(tipo, finalidad, ciudad, precioMax, habitacionesMin);
+    }
+
+    // ----------------------------------------------------------------
+    // Helpers privados
+    // ----------------------------------------------------------------
 
     private Inmueble mapearDesdeDTO(InmuebleDTO dto, Asesor asesor) {
         Inmueble i = new Inmueble();
@@ -210,22 +111,41 @@ public class InmuebleService {
         return i;
     }
 
-    // Copia superficial para snapshot (no copiamos la listaVisitas)
+    private void aplicarCambios(Inmueble destino, InmuebleDTO dto, Asesor asesor) {
+        destino.setDireccion(dto.getDireccion());
+        destino.setCiudad(dto.getCiudad());
+        destino.setBarrio(dto.getBarrio());
+        destino.setTipoInmueble(dto.getTipoInmueble());
+        destino.setFinalidad(dto.getFinalidad());
+        destino.setPrecio(dto.getPrecio());
+        destino.setArea(dto.getArea());
+        destino.setHabitaciones(dto.getHabitaciones());
+        destino.setBanos(dto.getBanos());
+        destino.setEstado(dto.getEstado());
+        destino.setDisponibilidad(dto.isDisponibilidad());
+        destino.setAsesor(asesor);
+    }
+
+    // Sobrecarga para restaurar desde snapshot (sin DTO)
+    private void aplicarCambios(Inmueble destino, Inmueble origen) {
+        destino.setDireccion(origen.getDireccion());
+        destino.setCiudad(origen.getCiudad());
+        destino.setBarrio(origen.getBarrio());
+        destino.setTipoInmueble(origen.getTipoInmueble());
+        destino.setFinalidad(origen.getFinalidad());
+        destino.setPrecio(origen.getPrecio());
+        destino.setArea(origen.getArea());
+        destino.setHabitaciones(origen.getHabitaciones());
+        destino.setBanos(origen.getBanos());
+        destino.setEstado(origen.getEstado());
+        destino.setDisponibilidad(origen.isDisponibilidad());
+        destino.setAsesor(origen.getAsesor());
+    }
+
     private Inmueble copiarSnapshot(Inmueble original) {
         Inmueble snap = new Inmueble();
         snap.setCodigo(original.getCodigo());
-        snap.setDireccion(original.getDireccion());
-        snap.setCiudad(original.getCiudad());
-        snap.setBarrio(original.getBarrio());
-        snap.setTipoInmueble(original.getTipoInmueble());
-        snap.setFinalidad(original.getFinalidad());
-        snap.setPrecio(original.getPrecio());
-        snap.setArea(original.getArea());
-        snap.setHabitaciones(original.getHabitaciones());
-        snap.setBanos(original.getBanos());
-        snap.setEstado(original.getEstado());
-        snap.setDisponibilidad(original.isDisponibilidad());
-        snap.setAsesor(original.getAsesor());
+        aplicarCambios(snap, original);
         return snap;
     }
 }

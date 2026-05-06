@@ -6,22 +6,26 @@ import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.entity.Visita;
 import co.edu.uniquindio.poo.PropTech.model.enums.EstadoVisita;
-import co.edu.uniquindio.poo.PropTech.structures.HashTable;
-import co.edu.uniquindio.poo.PropTech.structures.Queue;
-import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
+import co.edu.uniquindio.poo.PropTech.repository.VisitaRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class VisitaService {
 
-    private final HashTable<String, Visita> tablaPorId    = new HashTable<>();
-    private final Queue<Visita> colaVisitasPendientes     = new Queue<>();
+    private final VisitaRepository visitaRepository;
+
+    public VisitaService(VisitaRepository visitaRepository) {
+        this.visitaRepository = visitaRepository;
+    }
+
+    // ----------------------------------------------------------------
+    // Programación
+    // ----------------------------------------------------------------
 
     public Visita programar(VisitaDTO dto, Cliente cliente, Inmueble inmueble, Asesor asesor) {
-        if (tablaPorId.containsKey(dto.getIdVisita())) {
+        if (visitaRepository.existsById(dto.getIdVisita())) {
             throw new RuntimeException("Ya existe una visita con id: " + dto.getIdVisita());
         }
         if (!inmueble.isDisponibilidad()) {
@@ -29,14 +33,12 @@ public class VisitaService {
         }
 
         Visita visita = new Visita(
-                dto.getIdVisita(), cliente, inmueble, dto.getFecha(),
-                dto.getHora(), asesor, EstadoVisita.PENDIENTE, dto.getObservaciones()
+                dto.getIdVisita(), cliente, inmueble,
+                dto.getFecha(), dto.getHora(),
+                asesor, EstadoVisita.PENDIENTE, dto.getObservaciones()
         );
 
-        tablaPorId.put(visita.getIdVisita(), visita);
-        inmueble.getListaVisitas().addLast(visita);
-        colaVisitasPendientes.enqueue(visita);
-        return visita;
+        return visitaRepository.save(visita);
     }
 
     public void confirmar(String idVisita) {
@@ -54,7 +56,7 @@ public class VisitaService {
         visita.setFecha(dto.getFecha());
         visita.setHora(dto.getHora());
         visita.setEstado(EstadoVisita.REPROGRAMADA);
-        colaVisitasPendientes.enqueue(visita);
+        visitaRepository.enqueueParaProcesar(visita);
     }
 
     public void marcarRealizada(String idVisita, String observaciones) {
@@ -63,50 +65,41 @@ public class VisitaService {
         visita.setObservaciones(observaciones);
     }
 
+    // ----------------------------------------------------------------
+    // Cola de pendientes
+    // ----------------------------------------------------------------
+
     public Visita procesarSiguientePendiente() {
-        if (colaVisitasPendientes.isEmpty()) {
-            throw new RuntimeException("No hay visitas pendientes en la cola");
-        }
-        return colaVisitasPendientes.dequeue();
+        return visitaRepository.pollPendiente()
+                .orElseThrow(() -> new RuntimeException("No hay visitas pendientes en la cola"));
     }
 
     public int totalPendientes() {
-        return colaVisitasPendientes.getSize();
+        return visitaRepository.sizePendientes();
     }
+
+    // ----------------------------------------------------------------
+    // Consultas
+    // ----------------------------------------------------------------
 
     public Visita buscarPorId(String id) {
-        Visita v = tablaPorId.get(id);
-        if (v == null) throw new RuntimeException("Visita no encontrada: " + id);
-        return v;
-    }
-
-    public List<Visita> obtenerPorInmueble(String codigoInmueble) {
-        List<Visita> resultado = new ArrayList<>();
-        for (Visita v : tablaPorId) {
-            if (v.getInmueble().getCodigo().equals(codigoInmueble)) resultado.add(v);
-        }
-        return resultado;
-    }
-
-    public List<Visita> obtenerPorCliente(String idCliente) {
-        List<Visita> resultado = new ArrayList<>();
-        for (Visita v : tablaPorId) {
-            if (v.getCliente().getId().equals(idCliente)) resultado.add(v);
-        }
-        return resultado;
-    }
-
-    public List<Visita> obtenerPorEstado(EstadoVisita estado) {
-        List<Visita> resultado = new ArrayList<>();
-        for (Visita v : tablaPorId) {
-            if (v.getEstado() == estado) resultado.add(v);
-        }
-        return resultado;
+        return visitaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Visita no encontrada: " + id));
     }
 
     public List<Visita> obtenerTodas() {
-        List<Visita> todas = new ArrayList<>();
-        for (Visita v : tablaPorId) todas.add(v);
-        return todas;
+        return visitaRepository.findAll();
+    }
+
+    public List<Visita> obtenerPorEstado(EstadoVisita estado) {
+        return visitaRepository.findByEstado(estado);
+    }
+
+    public List<Visita> obtenerPorCliente(String idCliente) {
+        return visitaRepository.findByCliente(idCliente);
+    }
+
+    public List<Visita> obtenerPorInmueble(String codigoInmueble) {
+        return visitaRepository.findByInmueble(codigoInmueble);
     }
 }
