@@ -1,12 +1,15 @@
 package co.edu.uniquindio.poo.PropTech.structures;
 
 
+import lombok.Getter;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 public class SimpleLinkedList<T extends Comparable<T>> implements Iterable<T>{
 
     private Node<T> first;
+    @Getter
     private int size;
 
 

@@ -3,7 +3,10 @@ package co.edu.uniquindio.poo.PropTech.structures;
 import lombok.Getter;
 import lombok.Setter;
 
-public class HashTable<K, V> {
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
+public class HashTable<K, V> implements Iterable<V> {
 
     private HashNode<K, V>[] table;
     @Getter
@@ -121,6 +124,63 @@ public class HashTable<K, V> {
         }
     }
 
+    // ----------------------------------------------------------------
+    // Iterador sobre los valores
+    // ----------------------------------------------------------------
+
+    @Override
+    public Iterator<V> iterator() {
+        return new HashTableIterator();
+    }
+
+    private class HashTableIterator implements Iterator<V> {
+
+        private int bucketIndex;
+        private HashNode<K, V> currentNode;
+
+        public HashTableIterator() {
+            bucketIndex = 0;
+            currentNode = null;
+            avanzarAlSiguienteBucket();
+        }
+
+        // Avanza hasta encontrar el primer bucket no vacío
+        // a partir de bucketIndex actual
+        private void avanzarAlSiguienteBucket() {
+            while (bucketIndex < table.length && table[bucketIndex] == null) {
+                bucketIndex++;
+            }
+            if (bucketIndex < table.length) {
+                currentNode = table[bucketIndex];
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return currentNode != null;
+        }
+
+        @Override
+        public V next() {
+            if (!hasNext()) throw new NoSuchElementException();
+
+            V value = currentNode.getValue();
+            currentNode = currentNode.getNext();
+
+            // Si terminamos la cadena de este bucket, buscamos el siguiente
+            if (currentNode == null) {
+                bucketIndex++;
+                avanzarAlSiguienteBucket();
+            }
+
+            return value;
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // HashNode interno
+    // ----------------------------------------------------------------
+
     @Getter
     private static class HashNode<K, V> {
 
@@ -134,6 +194,5 @@ public class HashTable<K, V> {
             this.key = key;
             this.value = value;
         }
-
     }
 }
