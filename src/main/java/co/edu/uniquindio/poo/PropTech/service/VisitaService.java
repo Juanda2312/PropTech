@@ -127,4 +127,9 @@ public class VisitaService {
     public List<Visita> obtenerPorInmueble(String codigoInmueble) {
         return visitaRepository.findByInmueble(codigoInmueble);
     }
+    public Visita procesarSiguienteVIP() {
+        return visitaRepository.pollVIP()
+                .orElseThrow(() -> new ReglaNegocioException(
+                        "No hay visitas VIP en la cola de prioridad."));
+    }
 }
