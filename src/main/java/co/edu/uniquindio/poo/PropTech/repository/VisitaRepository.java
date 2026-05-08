@@ -3,6 +3,7 @@ package co.edu.uniquindio.poo.PropTech.repository;
 import co.edu.uniquindio.poo.PropTech.model.entity.Visita;
 import co.edu.uniquindio.poo.PropTech.model.enums.EstadoVisita;
 import co.edu.uniquindio.poo.PropTech.structures.HashTable;
+import co.edu.uniquindio.poo.PropTech.structures.PriorityQueue;
 import co.edu.uniquindio.poo.PropTech.structures.Queue;
 import org.springframework.stereotype.Repository;
 
@@ -13,19 +14,14 @@ import java.util.Optional;
 @Repository
 public class VisitaRepository {
 
-    // Acceso O(1) por id
     private final HashTable<String, Visita> tablaPorId = new HashTable<>();
-
-    // Cola FIFO de visitas pendientes de procesar
     private final Queue<Visita> colaPendientes = new Queue<>();
 
-    // ----------------------------------------------------------------
-    // Escritura
-    // ----------------------------------------------------------------
+    // Cola de prioridad para visitas VIP/urgentes (sección 5.4 del PDF)
+    private final PriorityQueue<Visita> colaVIP = new PriorityQueue<>();
 
     public Visita save(Visita visita) {
         tablaPorId.put(visita.getIdVisita(), visita);
-        // Solo encolamos si entra en estado PENDIENTE
         if (visita.getEstado() == EstadoVisita.PENDIENTE) {
             colaPendientes.enqueue(visita);
         }
@@ -36,13 +32,13 @@ public class VisitaRepository {
         colaPendientes.enqueue(visita);
     }
 
+    public void enqueueVIP(Visita visita) {
+        colaVIP.enqueue(visita);
+    }
+
     public void delete(String id) {
         tablaPorId.remove(id);
     }
-
-    // ----------------------------------------------------------------
-    // Lectura
-    // ----------------------------------------------------------------
 
     public Optional<Visita> findById(String id) {
         return Optional.ofNullable(tablaPorId.get(id));
@@ -82,13 +78,20 @@ public class VisitaRepository {
         return resultado;
     }
 
-    // ----------------------------------------------------------------
-    // Cola de pendientes
-    // ----------------------------------------------------------------
-
+    // Corregido: filtra visitas realmente pendientes antes de retornar
     public Optional<Visita> pollPendiente() {
-        if (colaPendientes.isEmpty()) return Optional.empty();
-        return Optional.of(colaPendientes.dequeue());
+        while (!colaPendientes.isEmpty()) {
+            Visita v = colaPendientes.dequeue();
+            if (v.getEstado() == EstadoVisita.PENDIENTE) {
+                return Optional.of(v);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<Visita> pollVIP() {
+        if (colaVIP.isEmpty()) return Optional.empty();
+        return Optional.of(colaVIP.dequeue());
     }
 
     public int sizePendientes() {
