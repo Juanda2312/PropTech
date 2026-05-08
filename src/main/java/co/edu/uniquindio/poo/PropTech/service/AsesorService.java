@@ -21,10 +21,6 @@ public class AsesorService {
         this.asesorRepository = asesorRepository;
     }
 
-    // ----------------------------------------------------------------
-    // CRUD
-    // ----------------------------------------------------------------
-
     public Asesor registrar(AsesorDTO dto) {
         if (asesorRepository.existsById(dto.getId())) {
             throw new EntidadDuplicadaException("Asesor", dto.getId());
@@ -46,10 +42,6 @@ public class AsesorService {
         existente.setEspecialidadZona(dto.getEspecialidadZona());
     }
 
-    // ----------------------------------------------------------------
-    // Gestión de carga
-    // ----------------------------------------------------------------
-
     public void asignarInmueble(String idAsesor, Inmueble inmueble) {
         buscarPorId(idAsesor).getInmueblesAsignados().addLast(inmueble);
     }
@@ -58,10 +50,12 @@ public class AsesorService {
         buscarPorId(idAsesor).getVisitasAgendadas().addLast(visita);
     }
 
+    //guardamos el número de cierres ANTES de agregar el nuevo
     public void registrarCierre(String idAsesor, Operacion operacion) {
         Asesor asesor = buscarPorId(idAsesor);
+        int cierresAnteriores = asesor.getCierresRealizados().getSize();
         asesor.getCierresRealizados().addLast(operacion);
-        asesorRepository.updateCierres(asesor);
+        asesorRepository.updateCierres(asesor, cierresAnteriores);
     }
 
     public int contarCarga(String idAsesor) {
@@ -69,10 +63,6 @@ public class AsesorService {
         return asesor.getVisitasAgendadas().getSize()
                 + asesor.getInmueblesAsignados().getSize();
     }
-
-    // ----------------------------------------------------------------
-    // Consultas y rankings
-    // ----------------------------------------------------------------
 
     public List<Asesor> obtenerTodos() {
         return asesorRepository.findAll();

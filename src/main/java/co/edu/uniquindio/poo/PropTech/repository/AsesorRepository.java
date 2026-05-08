@@ -13,13 +13,7 @@ import java.util.Optional;
 public class AsesorRepository {
 
     private final HashTable<String, Asesor> tablaPorId = new HashTable<>();
-
-    // Ordenado por número de cierres para rankings de efectividad
     private final AVLTree<AsesorWrapper> arbolPorCierres = new AVLTree<>();
-
-    // ----------------------------------------------------------------
-    // Escritura
-    // ----------------------------------------------------------------
 
     public Asesor save(Asesor asesor) {
         tablaPorId.put(asesor.getId(), asesor);
@@ -27,9 +21,9 @@ public class AsesorRepository {
         return asesor;
     }
 
-    // Cuando cambia el número de cierres hay que rebalancear el árbol
-    public void updateCierres(Asesor asesor) {
-        arbolPorCierres.remove(new AsesorWrapper(asesor));
+    // Corregido: primero removemos con el tamaño ANTERIOR, luego insertamos con el nuevo
+    public void updateCierres(Asesor asesor, int cierresAnteriores) {
+        arbolPorCierres.remove(new AsesorWrapper(asesor, cierresAnteriores));
         arbolPorCierres.insert(new AsesorWrapper(asesor));
     }
 
@@ -40,10 +34,6 @@ public class AsesorRepository {
             arbolPorCierres.remove(new AsesorWrapper(asesor));
         }
     }
-
-    // ----------------------------------------------------------------
-    // Lectura
-    // ----------------------------------------------------------------
 
     public Optional<Asesor> findById(String id) {
         return Optional.ofNullable(tablaPorId.get(id));
@@ -65,11 +55,6 @@ public class AsesorRepository {
         return ordenados;
     }
 
-    // ----------------------------------------------------------------
-    // Helpers
-    // ----------------------------------------------------------------
-
-    // Descendente: más cierres primero
     private void recolectarInOrderDesc(AVLTree.AVLNode<AsesorWrapper> nodo, List<Asesor> lista) {
         if (nodo == null) return;
         recolectarInOrderDesc(nodo.getRight(), lista);
@@ -77,28 +62,27 @@ public class AsesorRepository {
         recolectarInOrderDesc(nodo.getLeft(), lista);
     }
 
-    // ----------------------------------------------------------------
-    // Wrapper para AVL ordenado por número de cierres
-    // ----------------------------------------------------------------
-
     public static class AsesorWrapper implements Comparable<AsesorWrapper> {
 
         private final Asesor asesor;
+        private final int cierresSnapshot;
 
         public AsesorWrapper(Asesor asesor) {
             this.asesor = asesor;
+            this.cierresSnapshot = asesor.getCierresRealizados().getSize();
         }
 
-        public Asesor getAsesor() {
-            return asesor;
+        // Constructor para buscar con valor anterior de cierres
+        public AsesorWrapper(Asesor asesor, int cierresAnteriores) {
+            this.asesor = asesor;
+            this.cierresSnapshot = cierresAnteriores;
         }
+
+        public Asesor getAsesor() { return asesor; }
 
         @Override
         public int compareTo(AsesorWrapper otro) {
-            int cmp = Integer.compare(
-                    this.asesor.getCierresRealizados().getSize(),
-                    otro.asesor.getCierresRealizados().getSize()
-            );
+            int cmp = Integer.compare(this.cierresSnapshot, otro.cierresSnapshot);
             return cmp != 0 ? cmp : this.asesor.getId().compareTo(otro.asesor.getId());
         }
 
@@ -110,8 +94,6 @@ public class AsesorRepository {
         }
 
         @Override
-        public int hashCode() {
-            return asesor.getId().hashCode();
-        }
+        public int hashCode() { return asesor.getId().hashCode(); }
     }
 }
