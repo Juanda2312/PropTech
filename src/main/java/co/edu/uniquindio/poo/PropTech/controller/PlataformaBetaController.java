@@ -197,6 +197,23 @@ public class PlataformaBetaController {
     public ResponseEntity<Map<String, Integer>> rankingZonas() {
         return ResponseEntity.ok(plataformaBeta.rankingZonasPorActividad());
     }
+    // ----------------------------------------------------------------
+// GET /api/plataforma/grafo/bfs/{nodo}
+// Recorrido BFS desde un nodo del grafo, retorna lista de nodos visitados.
+// ----------------------------------------------------------------
+    @GetMapping("/grafo/bfs/{nodo}")
+    public ResponseEntity<List<String>> bfsDesdeNodo(@PathVariable String nodo) {
+        return ResponseEntity.ok(plataformaBeta.analizarRelacionesBFS(nodo));
+    }
+
+    // ----------------------------------------------------------------
+// POST /api/plataforma/visitas/vip/procesar
+// Procesa la siguiente visita VIP de la cola de prioridad.
+// ----------------------------------------------------------------
+    @PostMapping("/visitas/vip/procesar")
+    public ResponseEntity<Visita> procesarVisitaVIP() {
+        return ResponseEntity.ok(plataformaBeta.procesarVisitaVIP());
+    }
 
     // ----------------------------------------------------------------
     // GET /api/plataforma/inmuebles/ordenados
