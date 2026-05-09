@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SidebarComponent } from '../sidebar/sidebar';
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-visitas',
@@ -9,28 +10,50 @@ import { SidebarComponent } from '../sidebar/sidebar';
   templateUrl: './visitas.html',
   styleUrl: './visitas.css'
 })
-export class Visitas {
+export class Visitas implements OnInit {
   mostrarForm = false;
   modoEdicion = false;
   busqueda = '';
   filtroEstado = '';
+  cargando = false;
 
-  form: any = { id: '', cliente: '', inmueble: '', fecha: '', hora: '', asesor: '', estado: 'pendiente', observaciones: '' };
+  form: any = { id: '', cliente: '', inmueble: '', fecha: '', hora: '', asesor: '', estado: 'pendiente', observaciones: '', idCliente: '', codigoInmueble: '', idAsesor: '' };
 
-  visitas: any[] = [
-    { id: 'VIS001', cliente: 'Carlos Martínez', inmueble: 'Apartamento Norte Armenia', fecha: '2026-04-13', hora: '09:00', asesor: 'Juan Tapiero', estado: 'confirmada', observaciones: 'Cliente muy interesado' },
-    { id: 'VIS002', cliente: 'Ana Gómez', inmueble: 'Casa La Castellana', fecha: '2026-04-13', hora: '11:30', asesor: 'Jose Bedoya', estado: 'pendiente', observaciones: '' },
-    { id: 'VIS003', cliente: 'Luis Herrera', inmueble: 'Local Comercial Centro', fecha: '2026-04-13', hora: '15:00', asesor: 'Juan Tapiero', estado: 'confirmada', observaciones: 'Interesado en arrendar' },
-    { id: 'VIS004', cliente: 'María López', inmueble: 'Oficina Sudamericana', fecha: '2026-04-10', hora: '10:00', asesor: 'Laura Quintero', estado: 'realizada', observaciones: 'Le gustó pero quiere otra opción' },
-    { id: 'VIS005', cliente: 'Pedro Sánchez', inmueble: 'Bodega Zona Industrial', fecha: '2026-04-08', hora: '14:00', asesor: 'Andrés Ríos', estado: 'cancelada', observaciones: 'Cliente canceló sin aviso' },
-    { id: 'VIS006', cliente: 'Carlos Martínez', inmueble: 'Lote Sector Norte', fecha: '2026-04-15', hora: '09:00', asesor: 'Juan Tapiero', estado: 'reprogramada', observaciones: 'Reprogramada para siguiente semana' },
-  ];
+  visitas: any[] = [];
+  visitasFiltradas: any[] = [];
 
-  visitasFiltradas = [...this.visitas];
+  constructor(private api: ApiService) {}
+
+  ngOnInit() { this.cargar(); }
+
+  cargar() {
+    this.cargando = true;
+    this.api.getVisitas().subscribe({
+      next: (data) => {
+        this.visitas = data.map(v => ({
+          id: v.idVisita,
+          cliente: v.cliente?.nombre || v.idCliente || '',
+          inmueble: v.inmueble?.nombre || v.codigoInmueble || '',
+          fecha: v.fecha,
+          hora: v.hora,
+          asesor: v.asesor?.nombre || v.idAsesor || '',
+          estado: v.estado?.toLowerCase() || 'pendiente',
+          observaciones: v.observaciones || '',
+          idCliente: v.cliente?.id || '',
+          codigoInmueble: v.inmueble?.codigo || '',
+          idAsesor: v.asesor?.id || ''
+        }));
+        this.filtrar();
+        this.cargando = false;
+      },
+      error: () => { this.cargando = false; }
+    });
+  }
 
   filtrar() {
     this.visitasFiltradas = this.visitas.filter(v =>
-      (!this.busqueda || v.cliente.toLowerCase().includes(this.busqueda.toLowerCase()) || v.inmueble.toLowerCase().includes(this.busqueda.toLowerCase())) &&
+      (!this.busqueda || v.cliente?.toLowerCase().includes(this.busqueda.toLowerCase()) ||
+        v.inmueble?.toLowerCase().includes(this.busqueda.toLowerCase())) &&
       (!this.filtroEstado || v.estado === this.filtroEstado)
     );
   }
@@ -38,27 +61,41 @@ export class Visitas {
   editar(v: any) { this.form = { ...v }; this.modoEdicion = true; this.mostrarForm = true; }
 
   cancelar(v: any) {
-    if (confirm('¿Cancelar esta visita?')) {
-      v.estado = 'cancelada';
-      this.filtrar();
-    }
+    if (!confirm('¿Cancelar esta visita?')) return;
+    this.api.cancelarVisita(v.id, 'Cancelada desde panel admin').subscribe({
+      next: () => this.cargar(),
+      error: () => { v.estado = 'cancelada'; this.filtrar(); }
+    });
   }
 
   guardar() {
-    if (!this.modoEdicion) {
-      this.form.id = 'VIS' + String(this.visitas.length + 1).padStart(3, '0');
-      this.visitas.push({ ...this.form });
+    const payload = {
+      idVisita: this.form.id || 'VIS-' + Date.now(),
+      idCliente: this.form.idCliente || '1001',
+      codigoInmueble: this.form.codigoInmueble || this.form.inmueble,
+      fecha: this.form.fecha,
+      hora: this.form.hora,
+      idAsesor: this.form.idAsesor || 'AS001',
+      estado: 'PENDIENTE',
+      observaciones: this.form.observaciones
+    };
+
+    if (this.modoEdicion) {
+      this.api.reprogramarVisita(this.form.id, payload).subscribe({
+        next: () => { this.cargar(); this.cerrarForm(); },
+        error: () => { this.cerrarForm(); }
+      });
     } else {
-      const idx = this.visitas.findIndex(x => x.id === this.form.id);
-      if (idx >= 0) this.visitas[idx] = { ...this.form };
+      this.api.crearVisita(payload).subscribe({
+        next: () => { this.cargar(); this.cerrarForm(); },
+        error: () => { this.cerrarForm(); }
+      });
     }
-    this.filtrar();
-    this.cerrarForm();
   }
 
   cerrarForm() {
     this.mostrarForm = false;
     this.modoEdicion = false;
-    this.form = { id: '', cliente: '', inmueble: '', fecha: '', hora: '', asesor: '', estado: 'pendiente', observaciones: '' };
+    this.form = { id: '', cliente: '', inmueble: '', fecha: '', hora: '', asesor: '', estado: 'pendiente', observaciones: '', idCliente: '', codigoInmueble: '', idAsesor: '' };
   }
 }
