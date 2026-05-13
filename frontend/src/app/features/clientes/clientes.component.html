@@ -1,0 +1,181 @@
+<!-- src/app/features/clientes/clientes.component.html -->
+<div style="animation:fadeIn 300ms ease">
+  <div class="page-header">
+    <h1 class="page-title">👤 <span>Clientes</span></h1>
+    <div class="page-actions">
+      <button class="btn btn-secondary" (click)="toggleOrden()">
+        {{ ordenarPorPresupuesto ? '⇅ Orden normal' : '⇅ Ordenar por presupuesto' }}
+      </button>
+      <button class="btn btn-primary" (click)="abrirCrear()">+ Nuevo Cliente</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+  <div *ngIf="!loading && clientes.length === 0" class="empty-state card">
+    <span class="icon">👤</span>
+    <h3>Sin clientes</h3>
+    <p>Registra el primer cliente</p>
+    <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nuevo Cliente</button>
+  </div>
+
+  <div *ngIf="!loading && clientes.length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Nombre</th><th>Correo</th><th>Teléfono</th>
+          <th>Tipo</th><th>Presupuesto</th><th>Inmueble Deseado</th><th>Estado</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let c of clientes">
+          <td><code style="color:var(--gold);font-size:0.8rem">{{ c.id }}</code></td>
+          <td style="font-weight:500">{{ c.nombre }}</td>
+          <td style="font-size:0.8rem">{{ c.correo }}</td>
+          <td style="font-size:0.8rem">{{ c.telefono }}</td>
+          <td><span class="badge badge-blue">{{ c.tipoCliente }}</span></td>
+          <td style="color:var(--gold);font-weight:600">{{ formatPrice(c.presupuesto) }}</td>
+          <td><span class="badge badge-teal">{{ c.tipoInmuebleDeseado }}</span></td>
+          <td><span class="badge" [class]="estadoBadge(c.estadoBusqueda)">{{ c.estadoBusqueda }}</span></td>
+          <td>
+            <div class="table-actions">
+              <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalle" (click)="verDetalle(c)">👁</button>
+              <button class="btn btn-secondary btn-sm btn-icon" title="Editar" (click)="abrirEditar(c)">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" (click)="eliminar(c)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ clientes.length }} cliente(s)</div>
+</div>
+
+<!-- Modal crear/editar -->
+<div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar Cliente' : '+ Nuevo Cliente' }}</h2>
+      <button class="modal-close" (click)="showModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">ID *</label>
+          <input class="form-control" [(ngModel)]="form.id" [disabled]="editMode" placeholder="CLI-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre *</label>
+          <input class="form-control" [(ngModel)]="form.nombre" placeholder="Juan Pérez">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo</label>
+          <input type="email" class="form-control" [(ngModel)]="form.correo" placeholder="juan@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input class="form-control" [(ngModel)]="form.telefono" placeholder="3001234567">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo Cliente</label>
+          <input class="form-control" [(ngModel)]="form.tipoCliente" placeholder="COMPRADOR / ARRENDATARIO">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Presupuesto (COP)</label>
+          <input type="number" class="form-control" [(ngModel)]="form.presupuesto">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Inmueble Deseado</label>
+          <select class="form-control" [(ngModel)]="form.tipoInmuebleDeseado">
+            <option *ngFor="let t of tiposInmueble" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Habitaciones mín.</label>
+          <input type="number" class="form-control" [(ngModel)]="form.habitacionesMinimas">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado búsqueda</label>
+          <select class="form-control" [(ngModel)]="form.estadoBusqueda">
+            <option *ngFor="let e of estadosBusqueda" [value]="e">{{ e }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+          {{ submitting ? 'Guardando...' : (editMode ? 'Actualizar' : 'Registrar') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle con tabs -->
+<div class="modal-overlay" *ngIf="showDetailModal && selectedCliente" (click)="showDetailModal=false">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>👤 {{ selectedCliente.nombre }}</h2>
+      <button class="modal-close" (click)="showDetailModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab" [class.active]="activeTab==='info'" (click)="onTabChange('info')">Información</button>
+        <button class="tab" [class.active]="activeTab==='historial'" (click)="onTabChange('historial')">Historial ({{ historial.length }})</button>
+        <button class="tab" [class.active]="activeTab==='favoritos'" (click)="onTabChange('favoritos')">Favoritos ({{ favoritos.length }})</button>
+        <button class="tab" [class.active]="activeTab==='recomendaciones'" (click)="onTabChange('recomendaciones')">Recomendaciones</button>
+      </div>
+
+      <div *ngIf="activeTab==='info'" class="tab-content">
+        <div class="detail-grid">
+          <div class="detail-item"><span class="detail-label">ID</span><code style="color:var(--gold)">{{ selectedCliente.id }}</code></div>
+          <div class="detail-item"><span class="detail-label">Correo</span>{{ selectedCliente.correo }}</div>
+          <div class="detail-item"><span class="detail-label">Teléfono</span>{{ selectedCliente.telefono }}</div>
+          <div class="detail-item"><span class="detail-label">Tipo</span>{{ selectedCliente.tipoCliente }}</div>
+          <div class="detail-item"><span class="detail-label">Presupuesto</span><span style="color:var(--gold);font-weight:700">{{ formatPrice(selectedCliente.presupuesto) }}</span></div>
+          <div class="detail-item"><span class="detail-label">Inmueble deseado</span>{{ selectedCliente.tipoInmuebleDeseado }}</div>
+          <div class="detail-item"><span class="detail-label">Habitaciones mín.</span>{{ selectedCliente.habitacionesMinimas }}</div>
+          <div class="detail-item"><span class="detail-label">Estado</span><span class="badge" [class]="estadoBadge(selectedCliente.estadoBusqueda)">{{ selectedCliente.estadoBusqueda }}</span></div>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab==='historial'" class="tab-content">
+        <div *ngIf="historial.length === 0" class="empty-state"><span class="icon">📋</span><p>Sin historial</p></div>
+        <div *ngFor="let inm of historial" class="inmueble-mini-row">
+          <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
+          <span style="flex:1">{{ inm.direccion }}, {{ inm.ciudad }}</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:600">{{ formatPrice(inm.precio) }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab==='favoritos'" class="tab-content">
+        <div *ngIf="favoritos.length === 0" class="empty-state"><span class="icon">⭐</span><p>Sin favoritos</p></div>
+        <div *ngFor="let inm of favoritos" class="inmueble-mini-row">
+          <span class="badge badge-gold">⭐</span>
+          <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
+          <span style="flex:1">{{ inm.direccion }}, {{ inm.ciudad }}</span>
+          <span style="color:var(--gold);font-size:0.8rem;font-weight:600">{{ formatPrice(inm.precio) }}</span>
+        </div>
+      </div>
+
+      <div *ngIf="activeTab==='recomendaciones'" class="tab-content">
+        <div *ngIf="loadingRecs" class="loading"><div class="spinner"></div></div>
+        <div *ngIf="!loadingRecs && recomendaciones.length === 0" class="empty-state">
+          <span class="icon">✨</span>
+          <p>Presiona generar para obtener recomendaciones</p>
+          <button class="btn btn-primary mt-2" (click)="cargarRecomendaciones()">✨ Generar</button>
+        </div>
+        <div *ngFor="let r of recomendaciones" class="rec-row">
+          <div class="rec-score">{{ r.puntaje | number:'1.0-0' }}</div>
+          <div class="rec-info">
+            <span class="badge badge-blue">{{ r.inmueble?.tipoInmueble }}</span>
+            <span style="font-size:0.875rem">{{ r.inmueble?.direccion }}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted)">{{ r.criterio }}</span>
+          </div>
+          <span style="color:var(--gold);font-weight:600;font-size:0.85rem">{{ formatPrice(r.inmueble?.precio ?? 0) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

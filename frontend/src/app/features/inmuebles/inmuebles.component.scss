@@ -1,0 +1,18 @@
+/* src/app/features/inmuebles/inmuebles.component.scss */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.detail-item {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  padding: 0.6rem; background: var(--bg-secondary); border-radius: var(--radius-sm);
+}
+.detail-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+}
+.similar-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.5rem; background: var(--bg-secondary); border-radius: var(--radius-sm);
+}

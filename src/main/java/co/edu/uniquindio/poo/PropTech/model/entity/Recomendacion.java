@@ -1,5 +1,6 @@
 package co.edu.uniquindio.poo.PropTech.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,6 +15,8 @@ import java.time.LocalDate;
 public class Recomendacion implements Comparable<Recomendacion> {
 
     private String idRecomendacion;
+
+    @JsonIgnoreProperties({"listaVisitas","asesor"})
     private Inmueble inmueble;
     private double puntaje;
     private String criterio;

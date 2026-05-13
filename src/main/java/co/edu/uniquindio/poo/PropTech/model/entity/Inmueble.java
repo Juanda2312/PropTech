@@ -3,6 +3,8 @@ package co.edu.uniquindio.poo.PropTech.model.entity;
 import co.edu.uniquindio.poo.PropTech.model.enums.FinalidadInmueble;
 import co.edu.uniquindio.poo.PropTech.model.enums.TipoInmueble;
 import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,8 +28,11 @@ public class Inmueble implements Comparable<Inmueble> {
     private int banos;
     private String estado;
     private boolean disponibilidad;
+
+    @JsonIgnoreProperties({"inmueblesAsignados","visitasAgendadas","cierresRealizados"})
     private Asesor asesor;
 
+    @JsonIgnore
     private SimpleLinkedList<Visita> listaVisitas = new SimpleLinkedList<>();
 
     // Para ordenar en el AVL por precio

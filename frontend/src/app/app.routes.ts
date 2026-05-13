@@ -1,39 +1,47 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
-import { Dashboard } from './components/dashboard/dashboard';
-import { Inmuebles } from './components/inmuebles/inmuebles';
-import { Clientes } from './components/clientes/clientes';
-import { Asesores } from './components/asesores/asesores';
-import { Visitas } from './components/visitas/visitas';
-import { Contratos } from './components/contratos/contratos';
-import { Alertas } from './components/alertas/alertas';
-import { Solicitudes } from './components/solicitudes/solicitudes';
-import { Operaciones } from './components/operaciones/operaciones';
-import { Inicio } from './components/publico/inicio/inicio';
-import { Catalogo } from './components/publico/catalogo/catalogo';
-import { DetalleInmueble } from './components/publico/detalle-inmueble/detalle-inmueble';
-import { Favoritos } from './components/publico/favoritos/favoritos';
-import { Recomendaciones } from './components/publico/recomendaciones/recomendaciones';
-import { Comportamiento } from './components/admin/comportamiento/comportamiento';
-import { Login } from './components/publico/login/login';
-import { Registro } from './components/publico/registro/registro';
-import { LoginAdmin } from './components/admin/login-admin/login-admin';
+
 export const routes: Routes = [
-  { path: '', component: Inicio },
-  { path: 'catalogo', component: Catalogo },
-  { path: 'inmueble/:id', component: DetalleInmueble },
-  { path: 'favoritos', component: Favoritos },
-  { path: 'recomendaciones', component: Recomendaciones },
-  { path: 'admin/dashboard', component: Dashboard },
-  { path: 'admin/inmuebles', component: Inmuebles },
-  { path: 'admin/clientes', component: Clientes },
-  { path: 'admin/asesores', component: Asesores },
-  { path: 'admin/visitas', component: Visitas },
-  { path: 'admin/contratos', component: Contratos },
-  { path: 'admin/alertas', component: Alertas },
-  { path: 'admin/solicitudes', component: Solicitudes },
-  { path: 'admin/operaciones', component: Operaciones },
-  { path: 'admin/comportamiento', component: Comportamiento },
-  { path: 'login', component: Login },
-  { path: 'registro', component: Registro },
-  { path: 'admin/login', component: LoginAdmin },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  {
+    path: 'dashboard',
+    loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
+  },
+  {
+    path: 'inmuebles',
+    loadComponent: () => import('./features/inmuebles/inmuebles.component').then(m => m.InmueblesComponent)
+  },
+  {
+    path: 'clientes',
+    loadComponent: () => import('./features/clientes/clientes.component').then(m => m.ClientesComponent)
+  },
+  {
+    path: 'asesores',
+    loadComponent: () => import('./features/asesores/asesores.component').then(m => m.AsesoresComponent)
+  },
+  {
+    path: 'visitas',
+    loadComponent: () => import('./features/visitas/visitas.component').then(m => m.VisitasComponent)
+  },
+  {
+    path: 'operaciones',
+    loadComponent: () => import('./features/operaciones/operaciones.component').then(m => m.OperacionesComponent)
+  },
+  {
+    path: 'alertas',
+    loadComponent: () => import('./features/alertas/alertas.component').then(m => m.AlertasComponent)
+  },
+  {
+    path: 'eventos',
+    loadComponent: () => import('./features/eventos/eventos.component').then(m => m.EventosComponent)
+  },
+  {
+    path: 'recomendaciones',
+    loadComponent: () => import('./features/recomendaciones/recomendaciones.component').then(m => m.RecomendacionesComponent)
+  },
+  {
+    path: 'grafo',
+    loadComponent: () => import('./features/grafo/grafo.component').then(m => m.GrafoComponent)
+  },
+  { path: '**', redirectTo: 'dashboard' }
 ];

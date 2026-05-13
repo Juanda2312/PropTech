@@ -1,0 +1,71 @@
+<!-- src/app/features/alertas/alertas.component.html -->
+<div style="animation:fadeIn 300ms ease">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">🔔 <span>Alertas</span></h1>
+      <p class="text-muted" style="font-size:0.875rem;margin-top:0.25rem">
+        Cola pendiente: <strong style="color:var(--gold)">{{ totalPendientes }}</strong>
+      </p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-secondary" (click)="procesarSiguiente()" [disabled]="procesando || totalPendientes===0">
+        {{ procesando ? '⏳' : '⏭' }} Procesar siguiente
+      </button>
+      <button class="btn btn-primary" (click)="generar()" [disabled]="generando">
+        {{ generando ? '⏳ Generando...' : '🔔 Generar Alertas' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <div class="form-group">
+      <label class="form-label">Nivel</label>
+      <select class="form-control" [(ngModel)]="filtroNivel" (change)="cargarAlertas()">
+        <option value="">Todos</option>
+        <option *ngFor="let n of niveles" [value]="n">{{ n }}</option>
+      </select>
+    </div>
+    <div class="form-group" style="justify-content:flex-end">
+      <label class="form-label">Solo abiertas</label>
+      <label class="toggle-label">
+        <input type="checkbox" [(ngModel)]="filtroAbiertas" (change)="cargarAlertas()">
+        <span class="toggle-switch"></span>
+      </label>
+    </div>
+    <button class="btn btn-ghost" style="align-self:flex-end" (click)="limpiarFiltros()">Limpiar</button>
+  </div>
+
+  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+  <div *ngIf="!loading && alertas.length === 0" class="empty-state card">
+    <span class="icon">✅</span>
+    <h3>Sin alertas</h3>
+    <p>Genera alertas automáticas o ajusta los filtros</p>
+    <button class="btn btn-primary mt-2" (click)="generar()">🔔 Generar Alertas</button>
+  </div>
+
+  <div *ngIf="!loading && alertas.length > 0" class="alertas-list">
+    <div *ngFor="let a of alertas" class="alerta-card card" [class.cerrada]="a.cerrada">
+      <div class="alerta-nivel-bar" [class]="'bar-' + a.nivel.toLowerCase()"></div>
+      <div class="alerta-content">
+        <div class="alerta-header">
+          <div class="alerta-dot" [class]="nivelDotClass(a.nivel)"></div>
+          <span class="alerta-tipo">{{ a.tipoAlerta }}</span>
+          <span class="badge" [class]="nivelClass(a.nivel)">{{ a.nivel }}</span>
+          <span class="badge badge-gray" *ngIf="a.cerrada">CERRADA</span>
+        </div>
+        <p class="alerta-desc">{{ a.descripcion }}</p>
+        <div class="alerta-meta">
+          <span class="text-muted" style="font-size:0.75rem">{{ a.fechaGeneracion }}</span>
+          <code style="color:var(--text-muted);font-size:0.7rem">{{ a.idAlerta }}</code>
+        </div>
+      </div>
+      <div class="alerta-actions" *ngIf="!a.cerrada">
+        <button class="btn btn-secondary btn-sm" (click)="cerrar(a)">✓ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ alertas.length }} alerta(s)</div>
+</div>

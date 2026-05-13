@@ -1,0 +1,179 @@
+<!-- src/app/features/dashboard/dashboard.component.html -->
+<div class="dashboard">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Dashboard <span>Plataforma Beta</span></h1>
+      <p class="text-muted" style="font-size:0.875rem;margin-top:0.25rem">
+        Resumen en tiempo real de la plataforma inmobiliaria
+      </p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-secondary" (click)="detectarComportamientos()" [disabled]="detectando">
+        <span>{{ detectando ? '⏳' : '🔍' }}</span>
+        {{ detectando ? 'Detectando...' : 'Detectar Comportamientos' }}
+      </button>
+      <button class="btn btn-primary" (click)="generarAlertas()" [disabled]="generandoAlertas">
+        <span>{{ generandoAlertas ? '⏳' : '🔔' }}</span>
+        {{ generandoAlertas ? 'Generando...' : 'Generar Alertas' }}
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- KPI Stats -->
+    <div class="stats-grid">
+      <div class="stat-card" routerLink="/inmuebles" style="cursor:pointer">
+        <div class="stat-icon">🏠</div>
+        <div class="stat-label">Inmuebles</div>
+        <div class="stat-value">{{ stats.inmuebles }}</div>
+        <div class="stat-sub">registrados en plataforma</div>
+      </div>
+      <div class="stat-card" routerLink="/clientes" style="cursor:pointer">
+        <div class="stat-icon">👤</div>
+        <div class="stat-label">Clientes</div>
+        <div class="stat-value">{{ stats.clientes }}</div>
+        <div class="stat-sub">en búsqueda activa</div>
+      </div>
+      <div class="stat-card" routerLink="/asesores" style="cursor:pointer">
+        <div class="stat-icon">🧑‍💼</div>
+        <div class="stat-label">Asesores</div>
+        <div class="stat-value">{{ stats.asesores }}</div>
+        <div class="stat-sub">en la plataforma</div>
+      </div>
+      <div class="stat-card" routerLink="/visitas" style="cursor:pointer">
+        <div class="stat-icon">📅</div>
+        <div class="stat-label">Visitas Pendientes</div>
+        <div class="stat-value" [class.text-danger]="stats.visitasPendientes > 5">{{ stats.visitasPendientes }}</div>
+        <div class="stat-sub">en cola de procesamiento</div>
+      </div>
+      <div class="stat-card" routerLink="/alertas" style="cursor:pointer">
+        <div class="stat-icon">🔔</div>
+        <div class="stat-label">Alertas Abiertas</div>
+        <div class="stat-value" [class.text-danger]="stats.alertasAbiertas > 0">{{ stats.alertasAbiertas }}</div>
+        <div class="stat-sub">requieren atención</div>
+      </div>
+    </div>
+
+    <!-- Grid de contenido -->
+    <div class="content-grid">
+
+      <!-- Alertas críticas -->
+      <div class="card panel-alertas">
+        <div class="panel-header">
+          <h3>🚨 Alertas Recientes</h3>
+          <a routerLink="/alertas" class="btn btn-ghost btn-sm">Ver todas →</a>
+        </div>
+        <div *ngIf="alertasCriticas.length === 0" class="empty-state">
+          <span class="icon">✅</span>
+          <p>Sin alertas críticas</p>
+        </div>
+        <div class="alert-list">
+          <div *ngFor="let alerta of alertasCriticas" class="alert-row">
+            <div class="alert-dot" [class]="'dot-' + alerta.nivel.toLowerCase()"></div>
+            <div class="alert-info">
+              <span class="alert-tipo">{{ alerta.tipoAlerta }}</span>
+              <p class="alert-desc">{{ alerta.descripcion }}</p>
+            </div>
+            <span class="badge" [class]="nivelClass(alerta.nivel)">{{ alerta.nivel }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranking Asesores -->
+      <div class="card panel-ranking">
+        <div class="panel-header">
+          <h3>🏆 Ranking Asesores</h3>
+          <a routerLink="/asesores" class="btn btn-ghost btn-sm">Ver todos →</a>
+        </div>
+        <div *ngIf="rankingAsesores.length === 0" class="empty-state">
+          <span class="icon">👤</span>
+          <p>Sin asesores registrados</p>
+        </div>
+        <div class="ranking-list">
+          <div *ngFor="let a of rankingAsesores; let i = index" class="ranking-row">
+            <span class="rank-number" [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">
+              #{{ i + 1 }}
+            </span>
+            <div class="rank-info">
+              <span class="rank-name">{{ a.nombre }}</span>
+              <span class="rank-sub">{{ a.especialidadZona }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visitas pendientes -->
+      <div class="card panel-visitas">
+        <div class="panel-header">
+          <h3>📅 Visitas Pendientes</h3>
+          <a routerLink="/visitas" class="btn btn-ghost btn-sm">Ver todas →</a>
+        </div>
+        <div *ngIf="visitasPendientes.length === 0" class="empty-state">
+          <span class="icon">📅</span>
+          <p>Sin visitas pendientes</p>
+        </div>
+        <div class="visita-list">
+          <div *ngFor="let v of visitasPendientes" class="visita-row">
+            <div class="visita-fecha">
+              <span class="fecha-day">{{ v.fecha | slice:8:10 }}</span>
+              <span class="fecha-mon">{{ v.fecha | slice:5:7 }}</span>
+            </div>
+            <div class="visita-info">
+              <span class="visita-cliente">{{ v.cliente?.nombre }}</span>
+              <span class="visita-inmueble text-muted">{{ v.inmueble?.direccion }}</span>
+            </div>
+            <span class="visita-hora text-muted">{{ v.hora }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Inmuebles recientes -->
+      <div class="card panel-inmuebles">
+        <div class="panel-header">
+          <h3>🏠 Inmuebles Recientes</h3>
+          <a routerLink="/inmuebles" class="btn btn-ghost btn-sm">Ver todos →</a>
+        </div>
+        <div class="inmueble-list">
+          <div *ngFor="let inm of inmueblesRecientes" class="inmueble-row">
+            <div class="inm-type-badge">{{ inm.tipoInmueble }}</div>
+            <div class="inm-info">
+              <span class="inm-dir">{{ inm.direccion }}</span>
+              <span class="inm-ciudad text-muted">{{ inm.ciudad }} · {{ inm.barrio }}</span>
+            </div>
+            <div class="inm-price">{{ formatPrice(inm.precio) }}</div>
+            <span class="badge" [class]="inm.disponibilidad ? 'badge-green' : 'badge-red'">
+              {{ inm.disponibilidad ? 'Disponible' : 'No disp.' }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranking zonas -->
+      <div class="card panel-zonas">
+        <div class="panel-header">
+          <h3>📍 Actividad por Zona</h3>
+        </div>
+        <div *ngIf="rankingZonas.length === 0" class="empty-state">
+          <span class="icon">📍</span>
+          <p>Sin datos de zonas</p>
+        </div>
+        <div class="zona-list">
+          <div *ngFor="let z of rankingZonas; let i = index" class="zona-row">
+            <div class="zona-info">
+              <span class="zona-name">{{ z.zona }}</span>
+              <div class="zona-bar-wrap">
+                <div class="zona-bar" [style.width]="(z.visitas / (rankingZonas[0]?.visitas || 1) * 100) + '%'"></div>
+              </div>
+            </div>
+            <span class="zona-count">{{ z.visitas }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+</div>

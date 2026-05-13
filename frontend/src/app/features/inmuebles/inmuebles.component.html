@@ -1,0 +1,237 @@
+<!-- src/app/features/inmuebles/inmuebles.component.html -->
+<div class="inmuebles-page" style="animation: fadeIn 300ms ease">
+
+  <div class="page-header">
+    <h1 class="page-title">🏠 <span>Inmuebles</span></h1>
+    <div class="page-actions">
+      <button class="btn btn-secondary" (click)="ordenarPorPrecio()">⇅ Ordenar por precio</button>
+      <button class="btn btn-secondary" (click)="deshacer()">↩ Deshacer cambio</button>
+      <button class="btn btn-primary" (click)="abrirCrear()">+ Nuevo Inmueble</button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filters-bar">
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-control" [(ngModel)]="filtros.tipo">
+        <option value="">Todos</option>
+        <option *ngFor="let t of tiposInmueble" [value]="t">{{ t }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Finalidad</label>
+      <select class="form-control" [(ngModel)]="filtros.finalidad">
+        <option value="">Todas</option>
+        <option *ngFor="let f of finalidades" [value]="f">{{ f }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ciudad</label>
+      <input class="form-control" [(ngModel)]="filtros.ciudad" placeholder="ej. Medellín">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Disponible</label>
+      <select class="form-control" [(ngModel)]="filtros.disponible">
+        <option value="">Todos</option>
+        <option value="true">Sí</option>
+        <option value="false">No</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Precio máx.</label>
+      <input type="number" class="form-control" [(ngModel)]="filtros.precioMax" placeholder="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Habitaciones mín.</label>
+      <input type="number" class="form-control" [(ngModel)]="filtros.habitacionesMin" placeholder="0">
+    </div>
+    <div style="display:flex;gap:0.5rem;align-self:flex-end">
+      <button class="btn btn-primary" (click)="cargarInmuebles()">Filtrar</button>
+      <button class="btn btn-ghost" (click)="limpiarFiltros()">Limpiar</button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+  <div *ngIf="!loading && inmuebles.length === 0" class="empty-state card">
+    <span class="icon">🏠</span>
+    <h3>Sin inmuebles</h3>
+    <p>Registra el primer inmueble en la plataforma</p>
+    <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nuevo Inmueble</button>
+  </div>
+
+  <!-- Tabla -->
+  <div *ngIf="!loading && inmuebles.length > 0" class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Dirección</th>
+          <th>Ciudad</th>
+          <th>Tipo</th>
+          <th>Finalidad</th>
+          <th>Precio</th>
+          <th>Hab.</th>
+          <th>Disponible</th>
+          <th>Asesor</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let inm of inmuebles">
+          <td><code style="color:var(--gold);font-size:0.8rem">{{ inm.codigo }}</code></td>
+          <td class="truncate" style="max-width:180px">{{ inm.direccion }}</td>
+          <td>{{ inm.ciudad }}</td>
+          <td><span class="badge badge-blue">{{ inm.tipoInmueble }}</span></td>
+          <td><span class="badge" [class]="inm.finalidad==='VENTA'?'badge-teal':'badge-purple'">{{ inm.finalidad }}</span></td>
+          <td style="font-weight:600;color:var(--gold);white-space:nowrap">{{ formatPrice(inm.precio) }}</td>
+          <td>{{ inm.habitaciones }}</td>
+          <td>
+            <span class="badge" [class]="inm.disponibilidad ? 'badge-green' : 'badge-red'">
+              {{ inm.disponibilidad ? '✓ Sí' : '✕ No' }}
+            </span>
+          </td>
+          <td>{{ inm.asesor?.nombre || '—' }}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn btn-ghost btn-sm btn-icon" title="Ver detalle" (click)="verDetalle(inm)">👁</button>
+              <button class="btn btn-secondary btn-sm btn-icon" title="Editar" (click)="abrirEditar(inm)">✏️</button>
+              <button class="btn btn-danger btn-sm btn-icon" title="Eliminar" (click)="eliminar(inm)">🗑</button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Total -->
+  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">
+    {{ inmuebles.length }} inmueble(s) encontrado(s)
+  </div>
+</div>
+
+<!-- ── Modal Crear/Editar ─────────────────── -->
+<div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
+  <div class="modal modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editMode ? '✏️ Editar Inmueble' : '+ Nuevo Inmueble' }}</h2>
+      <button class="modal-close" (click)="showModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-section-title">Identificación</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label class="form-label">Código *</label>
+          <input class="form-control" [(ngModel)]="form.codigo" [disabled]="editMode" placeholder="INM-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ciudad *</label>
+          <input class="form-control" [(ngModel)]="form.ciudad" placeholder="Medellín">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Barrio</label>
+          <input class="form-control" [(ngModel)]="form.barrio" placeholder="El Poblado">
+        </div>
+      </div>
+      <div class="form-group mt-2">
+        <label class="form-label">Dirección *</label>
+        <input class="form-control" [(ngModel)]="form.direccion" placeholder="Calle 10 # 43-20">
+      </div>
+
+      <div class="form-section-title mt-2">Características</div>
+      <div class="form-grid-3">
+        <div class="form-group">
+          <label class="form-label">Tipo *</label>
+          <select class="form-control" [(ngModel)]="form.tipoInmueble">
+            <option *ngFor="let t of tiposInmueble" [value]="t">{{ t }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Finalidad *</label>
+          <select class="form-control" [(ngModel)]="form.finalidad">
+            <option *ngFor="let f of finalidades" [value]="f">{{ f }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado</label>
+          <input class="form-control" [(ngModel)]="form.estado" placeholder="DISPONIBLE">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Precio (COP) *</label>
+          <input type="number" class="form-control" [(ngModel)]="form.precio">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Área (m²)</label>
+          <input type="number" class="form-control" [(ngModel)]="form.area">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Habitaciones</label>
+          <input type="number" class="form-control" [(ngModel)]="form.habitaciones">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Baños</label>
+          <input type="number" class="form-control" [(ngModel)]="form.banos">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Disponible</label>
+          <select class="form-control" [(ngModel)]="form.disponibilidad">
+            <option [ngValue]="true">Sí</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Asesor *</label>
+          <select class="form-control" [(ngModel)]="form.idAsesor">
+            <option value="">Seleccionar...</option>
+            <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+          {{ submitting ? 'Guardando...' : (editMode ? 'Actualizar' : 'Registrar') }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Detalle ───────────────────────── -->
+<div class="modal-overlay" *ngIf="showDetailModal && selectedInmueble" (click)="showDetailModal=false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>🏠 {{ selectedInmueble.codigo }}</h2>
+      <button class="modal-close" (click)="showDetailModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid">
+        <div class="detail-item"><span class="detail-label">Dirección</span><span>{{ selectedInmueble.direccion }}</span></div>
+        <div class="detail-item"><span class="detail-label">Ciudad</span><span>{{ selectedInmueble.ciudad }}</span></div>
+        <div class="detail-item"><span class="detail-label">Barrio</span><span>{{ selectedInmueble.barrio }}</span></div>
+        <div class="detail-item"><span class="detail-label">Tipo</span><span class="badge badge-blue">{{ selectedInmueble.tipoInmueble }}</span></div>
+        <div class="detail-item"><span class="detail-label">Finalidad</span><span class="badge" [class]="selectedInmueble.finalidad==='VENTA'?'badge-teal':'badge-purple'">{{ selectedInmueble.finalidad }}</span></div>
+        <div class="detail-item"><span class="detail-label">Precio</span><span style="color:var(--gold);font-weight:700">{{ formatPrice(selectedInmueble.precio) }}</span></div>
+        <div class="detail-item"><span class="detail-label">Área</span><span>{{ selectedInmueble.area }} m²</span></div>
+        <div class="detail-item"><span class="detail-label">Habitaciones</span><span>{{ selectedInmueble.habitaciones }}</span></div>
+        <div class="detail-item"><span class="detail-label">Baños</span><span>{{ selectedInmueble.banos }}</span></div>
+        <div class="detail-item"><span class="detail-label">Estado</span><span>{{ selectedInmueble.estado }}</span></div>
+        <div class="detail-item"><span class="detail-label">Disponible</span><span class="badge" [class]="selectedInmueble.disponibilidad?'badge-green':'badge-red'">{{ selectedInmueble.disponibilidad ? 'Sí' : 'No' }}</span></div>
+        <div class="detail-item"><span class="detail-label">Asesor</span><span>{{ selectedInmueble.asesor?.nombre || '—' }}</span></div>
+      </div>
+
+      <div *ngIf="similares.length > 0" style="margin-top:1.25rem">
+        <h4>Inmuebles similares</h4>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem">
+          <div *ngFor="let s of similares" class="similar-row">
+            <span class="badge badge-blue">{{ s.tipoInmueble }}</span>
+            <span style="flex:1;font-size:0.875rem">{{ s.direccion }}</span>
+            <span style="color:var(--gold);font-weight:600;font-size:0.8rem">{{ formatPrice(s.precio) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

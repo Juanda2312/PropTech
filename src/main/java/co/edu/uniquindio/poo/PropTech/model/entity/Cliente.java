@@ -4,6 +4,7 @@ import co.edu.uniquindio.poo.PropTech.model.enums.EstadoBusqueda;
 import co.edu.uniquindio.poo.PropTech.model.enums.TipoInmueble;
 import co.edu.uniquindio.poo.PropTech.model.enums.Zona;
 import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -22,12 +23,17 @@ public class Cliente extends Persona {
     private int habitacionesMinimas;
     private EstadoBusqueda estadoBusqueda;
 
-    // Historial de interacción con inmuebles
+    @JsonIgnore
     private SimpleLinkedList<Inmueble> inmueblesConsultados  = new SimpleLinkedList<>();
+    @JsonIgnore
     private SimpleLinkedList<Inmueble> propiedadesVisitadas  = new SimpleLinkedList<>();
+    @JsonIgnore
     private SimpleLinkedList<Inmueble> inmueblesDescartados  = new SimpleLinkedList<>();
+    @JsonIgnore
     private SimpleLinkedList<Inmueble> inmueblesGuardados    = new SimpleLinkedList<>();
+    @JsonIgnore
     private SimpleLinkedList<Inmueble> inmueblesNegociados   = new SimpleLinkedList<>();
+    @JsonIgnore
     private SimpleLinkedList<Recomendacion> listaRecomendaciones = new SimpleLinkedList<>();
 
     public Cliente(String id, String nombre, String correo, String telefono,

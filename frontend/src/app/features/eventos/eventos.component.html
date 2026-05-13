@@ -1,0 +1,102 @@
+<!-- src/app/features/eventos/eventos.component.html -->
+<div style="animation:fadeIn 300ms ease">
+  <div class="page-header">
+    <h1 class="page-title">⚠️ <span>Eventos Inusuales</span></h1>
+    <div class="page-actions">
+      <button class="btn btn-secondary" (click)="detectar()" [disabled]="detectando">
+        {{ detectando ? '⏳ Detectando...' : '🔍 Detectar Comportamientos' }}
+      </button>
+      <button class="btn btn-primary" (click)="abrirCrear()">+ Registrar Evento</button>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <div class="form-group">
+      <label class="form-label">Nivel</label>
+      <select class="form-control" [(ngModel)]="filtroNivel" (change)="cargarEventos()">
+        <option value="">Todos</option>
+        <option *ngFor="let n of niveles" [value]="n">{{ n }}</option>
+      </select>
+    </div>
+    <div class="form-group" style="justify-content:flex-end">
+      <label class="form-label">Solo activos</label>
+      <label class="toggle-label">
+        <input type="checkbox" [(ngModel)]="filtroActivos" (change)="cargarEventos()">
+        <span class="toggle-switch"></span>
+      </label>
+    </div>
+    <button class="btn btn-ghost" style="align-self:flex-end" (click)="filtroNivel=''; filtroActivos=false; cargarEventos()">Limpiar</button>
+  </div>
+
+  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+  <div *ngIf="!loading && eventos.length === 0" class="empty-state card">
+    <span class="icon">🔍</span>
+    <h3>Sin eventos inusuales</h3>
+    <p>Ejecuta la detección automática o registra un evento manualmente</p>
+    <button class="btn btn-primary mt-2" (click)="detectar()">🔍 Detectar</button>
+  </div>
+
+  <div *ngIf="!loading && eventos.length > 0" class="eventos-grid">
+    <div *ngFor="let ev of eventos" class="evento-card card" [class.cerrado]="ev.estadoEvento==='CERRADO'">
+      <div class="evento-header">
+        <div class="evento-nivel-icon">{{ nivelIcon(ev.nivelAtencion) }}</div>
+        <div class="evento-titulo">
+          <span class="evento-tipo">{{ ev.tipoEvento }}</span>
+          <code style="font-size:0.7rem;color:var(--text-muted)">{{ ev.idEvento }}</code>
+        </div>
+        <div class="evento-badges">
+          <span class="badge" [class]="nivelClass(ev.nivelAtencion)">{{ ev.nivelAtencion }}</span>
+          <span class="badge" [class]="estadoClass(ev.estadoEvento)">{{ ev.estadoEvento }}</span>
+        </div>
+      </div>
+      <p class="evento-desc">{{ ev.descripcion }}</p>
+      <div class="evento-footer">
+        <span class="text-muted" style="font-size:0.75rem">{{ ev.fechaDeteccion }}</span>
+        <button class="btn btn-secondary btn-sm"
+          *ngIf="ev.estadoEvento !== 'CERRADO'"
+          (click)="cerrar(ev)">✓ Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ eventos.length }} evento(s)</div>
+</div>
+
+<!-- Modal registrar -->
+<div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>+ Registrar Evento Inusual</h2>
+      <button class="modal-close" (click)="showModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label class="form-label">ID Evento *</label>
+          <input class="form-control" [(ngModel)]="form.idEvento" placeholder="EVT-001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo Evento *</label>
+          <input class="form-control" [(ngModel)]="form.tipoEvento" placeholder="ej. EXCESO_VISITAS">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nivel de Atención</label>
+          <select class="form-control" [(ngModel)]="form.nivelAtencion">
+            <option *ngFor="let n of niveles" [value]="n">{{ n }}</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mt-2">
+        <label class="form-label">Descripción</label>
+        <input class="form-control" [(ngModel)]="form.descripcion" placeholder="Describe el comportamiento inusual...">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+          {{ submitting ? 'Registrando...' : 'Registrar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

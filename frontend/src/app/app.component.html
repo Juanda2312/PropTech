@@ -1,0 +1,98 @@
+<!-- src/app/app.component.html -->
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <nav class="sidebar" [class.collapsed]="sidebarCollapsed">
+    <div class="sidebar-header">
+      <div class="logo" *ngIf="!sidebarCollapsed">
+        <span class="logo-icon">⬡</span>
+        <div class="logo-text">
+          <span class="logo-name">PropTech</span>
+          <span class="logo-sub">Plataforma Beta</span>
+        </div>
+      </div>
+      <div class="logo-mini" *ngIf="sidebarCollapsed">⬡</div>
+      <button class="btn btn-ghost btn-icon collapse-btn" (click)="toggleSidebar()">
+        {{ sidebarCollapsed ? '›' : '‹' }}
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-section-label" *ngIf="!sidebarCollapsed">Principal</span>
+      <a class="nav-item" routerLink="/dashboard" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Dashboard' : ''">
+        <span class="nav-icon">▦</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Dashboard</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-section-label" *ngIf="!sidebarCollapsed">Gestión</span>
+      <a class="nav-item" routerLink="/inmuebles" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Inmuebles' : ''">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Inmuebles</span>
+      </a>
+      <a class="nav-item" routerLink="/clientes" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Clientes' : ''">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Clientes</span>
+      </a>
+      <a class="nav-item" routerLink="/asesores" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Asesores' : ''">
+        <span class="nav-icon">🧑‍💼</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Asesores</span>
+      </a>
+      <a class="nav-item" routerLink="/visitas" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Visitas' : ''">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Visitas</span>
+        <span class="nav-badge" *ngIf="pendientesCount > 0 && !sidebarCollapsed">{{ pendientesCount }}</span>
+      </a>
+      <a class="nav-item" routerLink="/operaciones" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Operaciones' : ''">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Operaciones</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <span class="nav-section-label" *ngIf="!sidebarCollapsed">Inteligencia</span>
+      <a class="nav-item" routerLink="/alertas" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Alertas' : ''">
+        <span class="nav-icon">🔔</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Alertas</span>
+        <span class="nav-badge danger" *ngIf="alertasCount > 0 && !sidebarCollapsed">{{ alertasCount }}</span>
+      </a>
+      <a class="nav-item" routerLink="/eventos" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Eventos Inusuales' : ''">
+        <span class="nav-icon">⚠️</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Eventos Inusuales</span>
+      </a>
+      <a class="nav-item" routerLink="/recomendaciones" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Recomendaciones' : ''">
+        <span class="nav-icon">✨</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Recomendaciones</span>
+      </a>
+      <a class="nav-item" routerLink="/grafo" routerLinkActive="active"
+         [title]="sidebarCollapsed ? 'Análisis de Grafo' : ''">
+        <span class="nav-icon">🕸️</span>
+        <span class="nav-label" *ngIf="!sidebarCollapsed">Análisis de Grafo</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>
+
+<!-- Toast container -->
+<div class="toast-container">
+  <div *ngFor="let toast of toasts" class="toast" [class]="'toast-' + toast.type">
+    <span>{{ toast.icon }}</span>
+    <span>{{ toast.message }}</span>
+  </div>
+</div>

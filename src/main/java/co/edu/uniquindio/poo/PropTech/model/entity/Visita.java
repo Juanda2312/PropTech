@@ -1,6 +1,7 @@
 package co.edu.uniquindio.poo.PropTech.model.entity;
 
 import co.edu.uniquindio.poo.PropTech.model.enums.EstadoVisita;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -16,10 +17,17 @@ import java.time.LocalTime;
 public class Visita implements Comparable<Visita> {
 
     private String idVisita;
+
+    @JsonIgnoreProperties({"inmueblesConsultados","propiedadesVisitadas",
+            "inmueblesDescartados","inmueblesGuardados","inmueblesNegociados","listaRecomendaciones"})
     private Cliente cliente;
+
+    @JsonIgnoreProperties({"listaVisitas","asesor"})
     private Inmueble inmueble;
     private LocalDate fecha;
     private LocalTime hora;
+
+    @JsonIgnoreProperties({"inmueblesAsignados","visitasAgendadas","cierresRealizados"})
     private Asesor asesor;
     private EstadoVisita estado;
     private String observaciones;

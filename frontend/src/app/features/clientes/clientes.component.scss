@@ -1,0 +1,45 @@
+/* src/app/features/clientes/clientes.component.scss */
+.tabs {
+  display: flex; gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+.tab {
+  background: none; border: none; cursor: pointer;
+  padding: 0.5rem 1rem;
+  font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--transition);
+  &:hover { color: var(--text-primary); }
+  &.active { color: var(--gold); border-bottom-color: var(--gold); }
+}
+.tab-content { animation: fadeIn 200ms ease; }
+
+.detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;
+}
+.detail-item {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  padding: 0.6rem; background: var(--bg-secondary); border-radius: var(--radius-sm);
+}
+.detail-label {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-muted);
+}
+.inmueble-mini-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem; background: var(--bg-secondary); border-radius: var(--radius-sm);
+  margin-bottom: 0.4rem;
+}
+.rec-row {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+}
+.rec-score {
+  font-family: 'Playfair Display', serif; font-size: 1.3rem;
+  color: var(--gold); min-width: 2.5rem; text-align: center; font-weight: 700;
+}
+.rec-info { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; min-width: 0; }

@@ -1,0 +1,152 @@
+<!-- src/app/features/grafo/grafo.component.html -->
+<div style="animation:fadeIn 300ms ease">
+  <div class="page-header">
+    <h1 class="page-title">🕸️ <span>Análisis de Grafo</span></h1>
+    <p class="text-muted" style="font-size:0.875rem">Explora relaciones entre clientes e inmuebles</p>
+  </div>
+
+  <div class="grafo-layout">
+
+    <!-- Panel izquierdo: consulta -->
+    <div class="panel-query">
+
+      <!-- Selector de modo -->
+      <div class="card modo-selector">
+        <h4 style="margin-bottom:0.75rem">Tipo de consulta</h4>
+        <div class="modo-buttons">
+          <button *ngFor="let m of modos" class="modo-btn"
+            [class.active]="modoQuery === m.value"
+            (click)="modoQuery = m.value; selectedId = ''; resultados = []">
+            <span class="modo-icon">{{ m.icon }}</span>
+            <span>{{ m.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Input de ID -->
+      <div class="card">
+        <h4 style="margin-bottom:0.75rem">{{ modoActual?.icon }} {{ modoActual?.label }}</h4>
+
+        <div *ngIf="modoQuery === 'clientes-de-inmueble'" class="form-group">
+          <label class="form-label">Código del Inmueble</label>
+          <select class="form-control" [(ngModel)]="selectedId">
+            <option value="">Seleccionar inmueble...</option>
+            <option *ngFor="let i of inmuebles" [value]="i.codigo">{{ i.codigo }} — {{ i.direccion }}</option>
+          </select>
+        </div>
+
+        <div *ngIf="modoQuery === 'inmuebles-de-cliente'" class="form-group">
+          <label class="form-label">ID del Cliente</label>
+          <select class="form-control" [(ngModel)]="selectedId">
+            <option value="">Seleccionar cliente...</option>
+            <option *ngFor="let c of clientes" [value]="c.id">{{ c.id }} — {{ c.nombre }}</option>
+          </select>
+        </div>
+
+        <div *ngIf="modoQuery === 'bfs'" class="form-group">
+          <label class="form-label">Nodo inicio (ID cliente o código inmueble)</label>
+          <input class="form-control" [(ngModel)]="selectedId" placeholder="ej. CLI-001 o INM-001">
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem">
+            El BFS recorre el grafo en anchura desde este nodo
+          </p>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;margin-top:0.75rem"
+          (click)="consultar()" [disabled]="!selectedId || loading">
+          {{ loading ? '⏳ Consultando...' : '🔍 Consultar' }}
+        </button>
+      </div>
+
+      <!-- Ranking zonas -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+          <h4>📍 Actividad por Zona</h4>
+          <button class="btn btn-ghost btn-sm" (click)="cargarRankingZonas()">↺</button>
+        </div>
+        <div *ngIf="loadingZonas" class="loading" style="padding:1rem"><div class="spinner"></div></div>
+        <div *ngIf="!loadingZonas && rankingZonas.length === 0" class="empty-state" style="padding:1rem">
+          <p>Sin datos de actividad</p>
+        </div>
+        <div *ngIf="!loadingZonas && rankingZonas.length > 0" class="zona-list">
+          <div *ngFor="let z of rankingZonas; let i = index" class="zona-row">
+            <span class="zona-rank">{{ i + 1 }}</span>
+            <div class="zona-info">
+              <span class="zona-name">{{ z.zona }}</span>
+              <div class="zona-bar-wrap">
+                <div class="zona-bar" [style.width]="(z.visitas / rankingZonas[0].visitas * 100) + '%'"></div>
+              </div>
+            </div>
+            <span class="zona-count">{{ z.visitas }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel derecho: resultados -->
+    <div class="panel-results">
+      <div class="card results-card">
+        <div class="results-header">
+          <h3>Resultados</h3>
+          <span class="badge badge-gold" *ngIf="resultados.length > 0">{{ resultados.length }} nodo(s)</span>
+        </div>
+
+        <div *ngIf="loading" class="loading" style="padding:3rem"><div class="spinner"></div></div>
+
+        <div *ngIf="!loading && resultados.length === 0" class="empty-state" style="padding:3rem">
+          <span class="icon">🕸️</span>
+          <h3>Sin resultados</h3>
+          <p>Realiza una consulta para ver las relaciones del grafo</p>
+        </div>
+
+        <!-- Visualización de nodos como red -->
+        <div *ngIf="!loading && resultados.length > 0" class="nodes-container">
+
+          <!-- Nodo origen destacado -->
+          <div class="origin-node">
+            <div class="node-circle origin">
+              <span>{{ modoActual?.icon }}</span>
+            </div>
+            <span class="node-label">{{ selectedId }}</span>
+          </div>
+
+          <!-- Línea conectora -->
+          <div class="connector-line">
+            <div class="connector-arrow">→ conectado con →</div>
+          </div>
+
+          <!-- Nodos resultantes -->
+          <div class="result-nodes">
+            <div *ngFor="let id of resultados; let i = index" class="result-node"
+              [style.animation-delay]="(i * 50) + 'ms'">
+              <div class="node-circle result">
+                <span>{{ getResultadoIcon(id) }}</span>
+              </div>
+              <div class="node-info">
+                <span class="node-tipo">{{ getResultadoTipo(id) }}</span>
+                <code class="node-id">{{ id }}</code>
+                <span class="node-name">{{ getResultadoLabel(id) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista alternativa para muchos resultados -->
+        <div *ngIf="!loading && resultados.length > 8" class="table-wrapper" style="margin-top:1rem">
+          <table>
+            <thead>
+              <tr><th>#</th><th>ID</th><th>Tipo</th><th>Descripción</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let id of resultados; let i = index">
+                <td>{{ i + 1 }}</td>
+                <td><code style="color:var(--gold);font-size:0.8rem">{{ id }}</code></td>
+                <td><span class="badge badge-blue">{{ getResultadoTipo(id) }}</span></td>
+                <td>{{ getResultadoLabel(id) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

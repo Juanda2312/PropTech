@@ -1,0 +1,30 @@
+/* src/app/features/asesores/asesores.component.scss */
+.asesores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.asesor-card {
+  display: flex; flex-direction: column; gap: 0.75rem; position: relative;
+  transition: all var(--transition);
+  &:hover { transform: translateY(-3px); box-shadow: var(--shadow-gold); border-color: var(--gold-dim); }
+}
+.asesor-rank {
+  position: absolute; top: 1rem; right: 1rem;
+  span { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 700; color: var(--text-muted); }
+  .gold   { color: var(--gold); }
+  .silver { color: #9ca3af; }
+  .bronze { color: #cd7c52; }
+}
+.asesor-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--gold-dim); border: 2px solid var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem; font-weight: 700; color: var(--gold);
+}
+.asesor-info { h3 { font-size: 1rem; margin-bottom: 0.1rem; } }
+.asesor-meta { display: flex; gap: 1rem; }
+.meta-item { display: flex; flex-direction: column; gap: 0.15rem; }
+.meta-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); font-weight: 700; }
+.asesor-actions { margin-top: auto; }

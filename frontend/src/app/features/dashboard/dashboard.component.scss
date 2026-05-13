@@ -1,0 +1,107 @@
+/* src/app/features/dashboard/dashboard.component.scss */
+.dashboard { animation: fadeIn 300ms ease; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.stat-card {
+  .stat-icon { font-size: 1.5rem; margin-bottom: 0.25rem; }
+  &:hover { transform: translateY(-2px); }
+  transition: all var(--transition);
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1rem;
+}
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1rem;
+  h3 { font-size: 0.95rem; font-family: 'DM Sans', sans-serif; font-weight: 600; }
+}
+
+/* Alertas */
+.alert-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.alert-row {
+  display: flex; align-items: flex-start; gap: 0.75rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+}
+.alert-dot {
+  width: 8px; height: 8px; border-radius: 50%; margin-top: 0.3rem; flex-shrink: 0;
+  &.dot-critico { background: var(--nivel-critico); box-shadow: 0 0 6px var(--nivel-critico); }
+  &.dot-alto    { background: var(--nivel-alto); }
+  &.dot-medio   { background: var(--nivel-medio); }
+  &.dot-bajo    { background: var(--nivel-bajo); }
+}
+.alert-info { flex: 1; min-width: 0; }
+.alert-tipo { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.alert-desc { font-size: 0.8rem; color: var(--text-primary); margin-top: 0.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Ranking */
+.ranking-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.ranking-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); &:last-child { border-bottom: none; } }
+.rank-number {
+  font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700;
+  color: var(--text-muted); width: 2rem; text-align: center; flex-shrink: 0;
+  &.gold   { color: var(--gold); }
+  &.silver { color: #9ca3af; }
+  &.bronze { color: #cd7c52; }
+}
+.rank-info { display: flex; flex-direction: column; }
+.rank-name { font-size: 0.875rem; font-weight: 500; }
+.rank-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+/* Visitas */
+.visita-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.visita-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem; background: var(--bg-secondary); border-radius: var(--radius-sm); }
+.visita-fecha { display: flex; flex-direction: column; align-items: center; background: var(--gold-dim); border-radius: var(--radius-sm); padding: 0.3rem 0.5rem; min-width: 36px; }
+.fecha-day { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--gold); line-height: 1; }
+.fecha-mon { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+.visita-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.visita-cliente { font-size: 0.875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visita-inmueble { font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.visita-hora { font-size: 0.75rem; flex-shrink: 0; }
+
+/* Inmuebles */
+.inmueble-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.inmueble-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--border); &:last-child { border-bottom: none; } }
+.inm-type-badge {
+  background: var(--bg-elevated); color: var(--text-secondary);
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);
+  white-space: nowrap; flex-shrink: 0;
+}
+.inm-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.inm-dir { font-size: 0.875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inm-ciudad { font-size: 0.75rem; }
+.inm-price { font-size: 0.8rem; font-weight: 600; color: var(--gold); white-space: nowrap; flex-shrink: 0; }
+
+/* Zonas */
+.zona-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.zona-row { display: flex; align-items: center; gap: 1rem; }
+.zona-info { flex: 1; display: flex; flex-direction: column; gap: 0.3rem; }
+.zona-name { font-size: 0.85rem; font-weight: 500; }
+.zona-bar-wrap { height: 4px; background: var(--bg-elevated); border-radius: 2px; overflow: hidden; }
+.zona-bar { height: 100%; background: linear-gradient(90deg, var(--gold), var(--accent-teal)); border-radius: 2px; transition: width 600ms ease; }
+.zona-count { font-size: 0.875rem; font-weight: 600; color: var(--gold); min-width: 24px; text-align: right; }
+
+.panel-alertas  { grid-column: 1; }
+.panel-ranking  { grid-column: 2; }
+.panel-visitas  { grid-column: 1; }
+.panel-inmuebles{ grid-column: 2; }
+.panel-zonas    { grid-column: 1 / -1; }
+
+@media (max-width: 900px) {
+  .content-grid { grid-template-columns: 1fr; }
+  .panel-alertas, .panel-ranking, .panel-visitas, .panel-inmuebles, .panel-zonas {
+    grid-column: 1;
+  }
+}
