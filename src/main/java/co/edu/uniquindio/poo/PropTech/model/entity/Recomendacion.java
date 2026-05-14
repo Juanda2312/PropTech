@@ -32,6 +32,6 @@ public class Recomendacion implements Comparable<Recomendacion> {
 
     @Override
     public int compareTo(Recomendacion otra) {
-        return Double.compare(otra.puntaje, this.puntaje); // mayor puntaje primero
+        return Double.compare(this.puntaje, otra.puntaje); // mayor puntaje primero
     }
 }
