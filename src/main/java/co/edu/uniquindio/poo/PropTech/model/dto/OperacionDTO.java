@@ -22,4 +22,6 @@ public class OperacionDTO {
     private double valorAcordado;
     private double comision;
     private String estadoProceso;
+    // fecha de vencimiento del contrato (opcional, solo para ARRIENDO y RENOVACION)
+    private LocalDate fechaVencimiento;
 }
