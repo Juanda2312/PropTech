@@ -25,6 +25,10 @@ public class AlertaService {
     // ----------------------------------------------------------------
 
     public Alerta generar(String idAlerta, String tipo, String descripcion, NivelAtencion nivel) {
+        // Si ya existe (cerrada o abierta) con este ID exacto, no regenerar
+        if (alertaRepository.existsById(idAlerta)) {
+            return alertaRepository.findById(idAlerta).get();
+        }
         Alerta alerta = new Alerta(idAlerta, tipo, descripcion, LocalDate.now(), nivel, false);
         return alertaRepository.save(alerta);
     }
@@ -39,7 +43,7 @@ public class AlertaService {
     }
 
     public Alerta procesarSiguiente() {
-        return alertaRepository.pollPendiente()
+        return alertaRepository.pollPrioridad()
                 .orElseThrow(() -> new ReglaNegocioException(
                         "No hay alertas pendientes en la cola para procesar."));
     }
@@ -61,6 +65,8 @@ public class AlertaService {
     }
 
     public int totalPendientes() {
-        return alertaRepository.sizePendientes();
+        return alertaRepository.sizePrioridad();
     }
+
+
 }

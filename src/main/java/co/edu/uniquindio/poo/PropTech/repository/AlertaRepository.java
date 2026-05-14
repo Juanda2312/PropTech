@@ -77,4 +77,8 @@ public class AlertaRepository {
     public int sizePendientes() {
         return colaPendientes.getSize();
     }
+
+    public int sizePrioridad() {
+        return colaPrioridad.getSize();
+    }
 }

@@ -23,7 +23,7 @@ public class Alerta implements Comparable<Alerta> {
 
     @Override
     public int compareTo(Alerta otra) {
-        // Las alertas más críticas tienen mayor prioridad
-        return otra.nivel.ordinal() - this.nivel.ordinal();
+        // CRITICO > ALTO > MEDIO > BAJO → mayor ordinal = mayor prioridad
+        return Integer.compare(this.nivel.ordinal(), otra.nivel.ordinal());
     }
 }
