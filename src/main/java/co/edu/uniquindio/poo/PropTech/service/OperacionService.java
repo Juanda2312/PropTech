@@ -41,7 +41,7 @@ public class OperacionService {
         Operacion operacion = new Operacion(
                 dto.getIdOperacion(), inmueble, cliente, asesor,
                 dto.getFecha(), dto.getTipoOperacion(),
-                dto.getValorAcordado(), dto.getComision(), dto.getEstadoProceso()
+                dto.getValorAcordado(), dto.getComision(), dto.getEstadoProceso(),null
         );
 
         if (dto.getTipoOperacion() == TipoOperacion.VENTA

@@ -174,7 +174,7 @@ public class DataLoader implements CommandLineRunner {
                 OperacionDTO dto = new OperacionDTO(
                         (String)op[0],(String)op[1],(String)op[2],(String)op[3],
                         (LocalDate)op[4],(TipoOperacion)op[5],
-                        (Double)op[6],(Double)op[7],(String)op[8]
+                        (Double)op[6],(Double)op[7],(String)op[8],null
                 );
                 plataforma.registrarOperacion(dto);
             } catch (Exception ignored) {}
