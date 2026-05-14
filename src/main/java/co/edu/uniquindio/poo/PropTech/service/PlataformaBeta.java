@@ -4,6 +4,8 @@ import co.edu.uniquindio.poo.PropTech.model.dto.*;
 import co.edu.uniquindio.poo.PropTech.model.entity.*;
 import co.edu.uniquindio.poo.PropTech.model.enums.*;
 import co.edu.uniquindio.poo.PropTech.structures.Graph;
+import co.edu.uniquindio.poo.PropTech.structures.HashTable;
+import co.edu.uniquindio.poo.PropTech.structures.Queue;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -24,8 +26,9 @@ public class PlataformaBeta {
 
     private final Graph<String> grafoRelaciones = new Graph<>(false);
 
-    // Historial de precios por inmueble para detectar cambios frecuentes
-    private final Map<String, List<Double>> historialPrecios = new HashMap<>();
+    // Historial de precios por inmueble para detectar cambios frecuentes.
+    // Usamos HashTable propia en lugar de java.util.HashMap
+    private final HashTable<String, List<Double>> historialPrecios = new HashTable<>();
 
     public PlataformaBeta(InmuebleService inmuebleService,
                           ClienteService clienteService,
@@ -54,7 +57,9 @@ public class PlataformaBeta {
         Inmueble inmueble = inmuebleService.registrar(dto, asesor);
         asesorService.asignarInmueble(asesor.getId(), inmueble);
         grafoRelaciones.addVertex(inmueble.getCodigo());
-        historialPrecios.put(inmueble.getCodigo(), new ArrayList<>(List.of(dto.getPrecio())));
+        List<Double> precios = new ArrayList<>();
+        precios.add(dto.getPrecio());
+        historialPrecios.put(inmueble.getCodigo(), precios);
         return inmueble;
     }
 
@@ -100,8 +105,13 @@ public class PlataformaBeta {
         Cliente  cliente  = clienteService.buscarPorId(dto.getIdCliente());
         Asesor   asesor   = asesorService.buscarPorId(dto.getIdAsesor());
 
-        historialPrecios.computeIfAbsent(inmueble.getCodigo(), k -> new ArrayList<>())
-                .add(inmueble.getPrecio());
+        // Registrar precio actual en historial para deteccion de cambios frecuentes
+        List<Double> precios = historialPrecios.get(inmueble.getCodigo());
+        if (precios == null) {
+            precios = new ArrayList<>();
+            historialPrecios.put(inmueble.getCodigo(), precios);
+        }
+        precios.add(inmueble.getPrecio());
 
         Operacion operacion = operacionService.registrar(dto, inmueble, cliente, asesor);
         asesorService.registrarCierre(asesor.getId(), operacion);
@@ -111,7 +121,7 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // ALERTAS AUTOMÁTICAS — cubre los 6 tipos del PDF
+    // ALERTAS AUTOMATICAS — cubre los 6 tipos del PDF
     // ================================================================
 
     public List<Alerta> generarAlertas() {
@@ -125,14 +135,13 @@ public class PlataformaBeta {
         return alertasGeneradas;
     }
 
-    // 1. Inmuebles disponibles sin ninguna visita registrada
+    // 1. Inmuebles disponibles sin ninguna visita
     private List<Alerta> alertarInmueblesInactivos() {
         List<Alerta> alertas = new ArrayList<>();
         for (Inmueble i : inmuebleService.obtenerTodos()) {
             if (i.isDisponibilidad() && i.getListaVisitas().isEmpty()) {
-                String id = "ALT-INM-INACT-" + i.getCodigo();
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-INM-INACT-" + i.getCodigo(),
                         "INMUEBLE_SIN_VISITAS",
                         "El inmueble " + i.getCodigo() + " (" + i.getDireccion() +
                                 ") no ha recibido ninguna visita desde que fue publicado.",
@@ -142,113 +151,98 @@ public class PlataformaBeta {
         return alertas;
     }
 
-    // 2. Visitas pendientes sin confirmar hace más de 3 días
+    // 2. Visitas pendientes sin confirmar hace mas de 3 dias
     private List<Alerta> alertarVisitasPendientesSinConfirmar() {
         List<Alerta> alertas = new ArrayList<>();
         for (Visita v : visitaService.obtenerPorEstado(EstadoVisita.PENDIENTE)) {
             long dias = ChronoUnit.DAYS.between(v.getFecha(), LocalDate.now());
             if (dias > 3) {
-                String id = "ALT-VIS-PEND-" + v.getIdVisita();
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-VIS-PEND-" + v.getIdVisita(),
                         "VISITA_PENDIENTE_SIN_CONFIRMAR",
                         "La visita " + v.getIdVisita() + " del cliente " +
                                 v.getCliente().getNombre() + " lleva " + dias +
-                                " días pendiente sin confirmar.",
+                                " dias pendiente sin confirmar.",
                         NivelAtencion.MEDIO));
             }
         }
         return alertas;
     }
 
-    // 3. Clientes activos sin ninguna interacción registrada
+    // 3. Clientes activos sin ninguna interaccion
     private List<Alerta> alertarClientesSinSeguimiento() {
         List<Alerta> alertas = new ArrayList<>();
         for (Cliente c : clienteService.obtenerTodos()) {
             if (c.getEstadoBusqueda() == EstadoBusqueda.ACTIVO
                     && c.getPropiedadesVisitadas().isEmpty()
                     && c.getInmueblesConsultados().isEmpty()) {
-                String id = "ALT-CLI-SEG-" + c.getId();
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-CLI-SEG-" + c.getId(),
                         "CLIENTE_SIN_SEGUIMIENTO",
                         "El cliente " + c.getNombre() + " (" + c.getId() +
-                                ") está activo pero no tiene ninguna interacción registrada.",
+                                ") esta activo pero no tiene ninguna interaccion registrada.",
                         NivelAtencion.BAJO));
             }
         }
         return alertas;
     }
 
-    // 4. Contratos próximos a vencer (dentro de los próximos 30 días)
+    // 4. Contratos proximos a vencer (dentro de 30 dias)
     private List<Alerta> alertarContratosProximosAVencer() {
         List<Alerta> alertas = new ArrayList<>();
-        int diasUmbral = 30;
         for (Operacion op : operacionService.obtenerTodas()) {
             if (op.getFechaVencimiento() == null) continue;
-            if (!"CERRADO".equals(op.getEstadoProceso()) &&
-                    !"CANCELADO".equals(op.getEstadoProceso()) &&
-                    op.estaProximaAVencer(diasUmbral)) {
-
+            if ("CERRADO".equals(op.getEstadoProceso()) ||
+                    "CANCELADO".equals(op.getEstadoProceso())) continue;
+            if (op.estaProximaAVencer(30)) {
                 long diasRestantes = ChronoUnit.DAYS.between(
                         LocalDate.now(), op.getFechaVencimiento());
-
-                NivelAtencion nivel = diasRestantes <= 7
-                        ? NivelAtencion.CRITICO
-                        : diasRestantes <= 15
-                          ? NivelAtencion.ALTO
+                NivelAtencion nivel = diasRestantes <= 7  ? NivelAtencion.CRITICO
+                        : diasRestantes <= 15 ? NivelAtencion.ALTO
                           : NivelAtencion.MEDIO;
-
-                String id = "ALT-OP-VENC-" + op.getIdOperacion();
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-OP-VENC-" + op.getIdOperacion(),
                         "CONTRATO_PROXIMO_A_VENCER",
                         "El contrato " + op.getIdOperacion() + " del inmueble " +
                                 op.getInmueble().getCodigo() + " vence en " + diasRestantes +
-                                " día(s) (" + op.getFechaVencimiento() + ").",
+                                " dia(s) (" + op.getFechaVencimiento() + ").",
                         nivel));
             }
         }
         return alertas;
     }
 
-    // 5. Inmuebles disponibles con más de 10 visitas pero sin cierre (alta demanda sin resultado)
+    // 5. Inmuebles disponibles con mas de 10 visitas sin cierre
     private List<Alerta> alertarInmueblesConAltaDemanda() {
         List<Alerta> alertas = new ArrayList<>();
         for (Inmueble i : inmuebleService.obtenerTodos()) {
             int totalVisitas = visitaService.obtenerPorInmueble(i.getCodigo()).size();
             if (i.isDisponibilidad() && totalVisitas > 10) {
-                String id = "ALT-INM-DEMAND-" + i.getCodigo();
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-INM-DEMAND-" + i.getCodigo(),
                         "INMUEBLE_CON_ALTA_DEMANDA",
-                        "El inmueble " + i.getCodigo() + " (" + i.getDireccion() +
-                                ") tiene " + totalVisitas +
-                                " visitas registradas y sigue disponible. Revisar precio o condiciones.",
+                        "El inmueble " + i.getCodigo() + " tiene " + totalVisitas +
+                                " visitas y sigue disponible. Revisar precio o condiciones.",
                         NivelAtencion.MEDIO));
             }
         }
         return alertas;
     }
 
-    // 6. Inmuebles en operación activa (no cerrados ni cancelados) por más de 60 días sin cierre
+    // 6. Operaciones activas por mas de 60 dias sin cerrarse
     private List<Alerta> alertarInmueblesReservadosSinCierre() {
         List<Alerta> alertas = new ArrayList<>();
-        int diasUmbral = 60;
         for (Operacion op : operacionService.obtenerTodas()) {
             if ("CERRADO".equals(op.getEstadoProceso()) ||
                     "CANCELADO".equals(op.getEstadoProceso())) continue;
-
-            long diasTranscurridos = ChronoUnit.DAYS.between(op.getFecha(), LocalDate.now());
-            if (diasTranscurridos > diasUmbral) {
-                String id = "ALT-OP-RESERV-" + op.getIdOperacion();
+            long dias = ChronoUnit.DAYS.between(op.getFecha(), LocalDate.now());
+            if (dias > 60) {
                 alertas.add(alertaService.generar(
-                        id,
+                        "ALT-OP-RESERV-" + op.getIdOperacion(),
                         "INMUEBLE_RESERVADO_SIN_CIERRE",
                         "El inmueble " + op.getInmueble().getCodigo() +
-                                " lleva " + diasTranscurridos +
-                                " días en proceso de " + op.getTipoOperacion() +
-                                " sin cerrarse. Operación: " + op.getIdOperacion() + ".",
+                                " lleva " + dias + " dias en proceso de " +
+                                op.getTipoOperacion() + " sin cerrarse.",
                         NivelAtencion.ALTO));
             }
         }
@@ -256,13 +250,13 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // DETECCIÓN DE COMPORTAMIENTOS INUSUALES
+    // DETECCION DE COMPORTAMIENTOS INUSUALES
     // ================================================================
 
     public void detectarComportamientosInusuales() {
         for (Cliente c : clienteService.obtenerTodos()) detectarExcesoVisitasCliente(c.getId());
         for (Asesor a : asesorService.obtenerTodos()) detectarSobrecargaAsesor(a.getId());
-        detectarInmueblesConAltaDemanda();
+        detectarInmueblesConAltaDemandaEvento();
         detectarCambiosFrecuentesDePrecio();
         detectarConcentracionZona();
     }
@@ -275,7 +269,7 @@ public class PlataformaBeta {
                     "EVT-CLI-" + idCliente + "-" + System.currentTimeMillis(),
                     "EXCESO_VISITAS_CLIENTE",
                     "Cliente " + cliente.getNombre() + " tiene " + total +
-                            " visitas registradas sin haber cerrado ninguna operación.",
+                            " visitas registradas sin haber cerrado ninguna operacion.",
                     NivelAtencion.MEDIO);
         }
     }
@@ -287,13 +281,12 @@ public class PlataformaBeta {
             eventoService.registrar(
                     "EVT-ASR-" + idAsesor + "-" + System.currentTimeMillis(),
                     "SOBRECARGA_ASESOR",
-                    "Asesor " + asesor.getNombre() + " tiene una carga total de " +
-                            carga + " elementos (visitas + inmuebles asignados).",
+                    "Asesor " + asesor.getNombre() + " tiene carga total de " + carga + " elementos.",
                     NivelAtencion.ALTO);
         }
     }
 
-    private void detectarInmueblesConAltaDemanda() {
+    private void detectarInmueblesConAltaDemandaEvento() {
         for (Inmueble i : inmuebleService.obtenerTodos()) {
             int total = visitaService.obtenerPorInmueble(i.getCodigo()).size();
             if (total > 20 && i.isDisponibilidad()) {
@@ -301,20 +294,21 @@ public class PlataformaBeta {
                         "EVT-INM-" + i.getCodigo() + "-" + System.currentTimeMillis(),
                         "ALTA_DEMANDA_SIN_CIERRE",
                         "El inmueble " + i.getCodigo() + " tiene " + total +
-                                " visitas registradas y continúa disponible sin cerrarse.",
+                                " visitas y continua disponible.",
                         NivelAtencion.ALTO);
             }
         }
     }
 
     private void detectarCambiosFrecuentesDePrecio() {
-        for (Map.Entry<String, List<Double>> entry : historialPrecios.entrySet()) {
-            if (entry.getValue().size() > 3) {
+        for (Inmueble i : inmuebleService.obtenerTodos()) {
+            List<Double> precios = historialPrecios.get(i.getCodigo());
+            if (precios != null && precios.size() > 3) {
                 eventoService.registrar(
-                        "EVT-PRECIO-" + entry.getKey() + "-" + System.currentTimeMillis(),
+                        "EVT-PRECIO-" + i.getCodigo() + "-" + System.currentTimeMillis(),
                         "PRECIO_CAMBIA_FRECUENTEMENTE",
-                        "El inmueble " + entry.getKey() + " ha tenido " +
-                                entry.getValue().size() + " cambios de precio registrados.",
+                        "El inmueble " + i.getCodigo() + " ha tenido " +
+                                precios.size() + " cambios de precio.",
                         NivelAtencion.MEDIO);
             }
         }
@@ -328,14 +322,14 @@ public class PlataformaBeta {
                         "EVT-ZONA-" + entry.getKey().replace(" ", "_") + "-" + System.currentTimeMillis(),
                         "CONCENTRACION_ZONA",
                         "La zona '" + entry.getKey() + "' tiene " + entry.getValue() +
-                                " visitas registradas, lo que indica una concentración inusual de interés.",
+                                " visitas recientes, concentracion inusual.",
                         NivelAtencion.BAJO);
             }
         }
     }
 
     // ================================================================
-    // RECOMENDACIONES — cubre los 6 criterios del PDF
+    // RECOMENDACIONES
     // ================================================================
 
     public List<Recomendacion> generarRecomendaciones(String idCliente) {
@@ -347,7 +341,7 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // ANÁLISIS CON GRAFOS
+    // ANALISIS CON GRAFOS — BFS usa Queue propia, sin java.util.LinkedList
     // ================================================================
 
     public List<String> obtenerClientesConectadosAInmueble(String codigoInmueble) {
@@ -358,44 +352,55 @@ public class PlataformaBeta {
         return grafoRelaciones.getNeighbors(idCliente);
     }
 
+    /**
+     * BFS desde un nodo usando Queue y HashTable propias.
+     * No usa java.util.LinkedList ni java.util.HashSet.
+     */
     public List<String> analizarRelacionesBFS(String nodoInicio) {
-        if (!grafoRelaciones.containsVertex(nodoInicio)) return new ArrayList<>();
-
-        Queue<String> cola = new java.util.LinkedList<>();
-        Set<String> visitados = new HashSet<>();
         List<String> resultado = new ArrayList<>();
+        if (!grafoRelaciones.containsVertex(nodoInicio)) return resultado;
 
-        cola.add(nodoInicio);
-        visitados.add(nodoInicio);
+        // Queue propia en lugar de java.util.LinkedList
+        Queue<String> cola = new Queue<>();
+        // HashTable propia en lugar de java.util.HashSet
+        HashTable<String, Boolean> visitados = new HashTable<>();
+
+        cola.enqueue(nodoInicio);
+        visitados.put(nodoInicio, true);
 
         while (!cola.isEmpty()) {
-            String actual = cola.poll();
+            String actual = cola.dequeue();
             resultado.add(actual);
             for (String vecino : grafoRelaciones.getNeighbors(actual)) {
-                if (!visitados.contains(vecino)) {
-                    visitados.add(vecino);
-                    cola.add(vecino);
+                if (!visitados.containsKey(vecino)) {
+                    visitados.put(vecino, true);
+                    cola.enqueue(vecino);
                 }
             }
         }
         return resultado;
     }
 
-    // Análisis de segundo nivel: dado un cliente, encuentra qué otros
-    // clientes visitaron inmuebles similares (vecinos de vecinos en el grafo)
+    /**
+     * Clientes con perfil similar: dado un cliente, busca otros clientes
+     * que visitaron los mismos inmuebles (vecinos de vecinos en el grafo).
+     */
     public List<String> obtenerClientesConPerfilSimilar(String idCliente) {
         List<String> inmueblesDelCliente = grafoRelaciones.getNeighbors(idCliente);
-        Set<String> clientesSimilares = new LinkedHashSet<>();
+        // HashTable propia para evitar duplicados
+        HashTable<String, Boolean> clientesSimilares = new HashTable<>();
+        List<String> resultado = new ArrayList<>();
 
         for (String codigoInmueble : inmueblesDelCliente) {
             for (String vecino : grafoRelaciones.getNeighbors(codigoInmueble)) {
-                // Excluye el cliente de origen y solo incluye IDs de clientes (empiezan con CLI-)
-                if (!vecino.equals(idCliente) && vecino.startsWith("CLI-")) {
-                    clientesSimilares.add(vecino);
+                if (!vecino.equals(idCliente) && vecino.startsWith("CLI-")
+                        && !clientesSimilares.containsKey(vecino)) {
+                    clientesSimilares.put(vecino, true);
+                    resultado.add(vecino);
                 }
             }
         }
-        return new ArrayList<>(clientesSimilares);
+        return resultado;
     }
 
     // ================================================================
@@ -407,7 +412,7 @@ public class PlataformaBeta {
     }
 
     public Map<String, Integer> rankingZonasPorActividad() {
-        Map<String, Integer> conteo = new HashMap<>();
+        Map<String, Integer> conteo = new LinkedHashMap<>();
         for (Visita v : visitaService.obtenerTodas()) {
             String zona = v.getInmueble().getBarrio();
             conteo.merge(zona, 1, Integer::sum);
@@ -415,64 +420,73 @@ public class PlataformaBeta {
         return conteo;
     }
 
-    // Detección de clientes con alta probabilidad de cierre:
-    // tienen favoritos + visitaron propiedades + presupuesto cubre inmuebles disponibles
+    /**
+     * Clientes con alta probabilidad de cierre:
+     * - Estado ACTIVO
+     * - Tienen al menos un favorito guardado
+     * - Visitaron 2 o mas inmuebles
+     * - Su presupuesto alcanza algun inmueble disponible del tipo que buscan
+     */
     public List<Cliente> obtenerClientesConAltaProbabilidadDeCierre() {
         List<Cliente> resultado = new ArrayList<>();
         List<Inmueble> disponibles = inmuebleService.filtrarDisponibles();
 
         for (Cliente c : clienteService.obtenerTodos()) {
             if (c.getEstadoBusqueda() != EstadoBusqueda.ACTIVO) continue;
-
             boolean tieneFavoritos  = !c.getInmueblesGuardados().isEmpty();
-            boolean visitoInmuebles = c.getPropiedadesVisitadas().getSize() >= 2;
-            boolean presupuestoVida = disponibles.stream()
-                    .anyMatch(i -> i.getPrecio() <= c.getPresupuesto()
-                            && i.getTipoInmueble() == c.getTipoInmuebleDeseado());
-
-            if (tieneFavoritos && visitoInmuebles && presupuestoVida) {
+            boolean visitoSuficiente = c.getPropiedadesVisitadas().getSize() >= 2;
+            boolean hayInmuebleAcorde = false;
+            for (Inmueble i : disponibles) {
+                if (i.getPrecio() <= c.getPresupuesto()
+                        && i.getTipoInmueble() == c.getTipoInmuebleDeseado()) {
+                    hayInmuebleAcorde = true;
+                    break;
+                }
+            }
+            if (tieneFavoritos && visitoSuficiente && hayInmuebleAcorde) {
                 resultado.add(c);
             }
         }
         return resultado;
     }
 
-    // Simulación de crecimiento de demanda por sector:
-    // compara visitas de los últimos 30 días vs los 30 anteriores por barrio
+    /**
+     * Simulacion de crecimiento de demanda por sector:
+     * compara visitas de los ultimos 30 dias vs los 30 anteriores por barrio.
+     */
     public Map<String, Map<String, Object>> simularCrecimientoDemandaPorSector() {
-        Map<String, Integer> recientes   = new HashMap<>(); // últimos 30 días
-        Map<String, Integer> anteriores  = new HashMap<>(); // días 31 a 60
+        Map<String, Integer> recientes  = new LinkedHashMap<>();
+        Map<String, Integer> anteriores = new LinkedHashMap<>();
 
-        LocalDate hoy      = LocalDate.now();
-        LocalDate hace30   = hoy.minusDays(30);
-        LocalDate hace60   = hoy.minusDays(60);
+        LocalDate hoy    = LocalDate.now();
+        LocalDate hace30 = hoy.minusDays(30);
+        LocalDate hace60 = hoy.minusDays(60);
 
         for (Visita v : visitaService.obtenerTodas()) {
             String zona = v.getInmueble().getBarrio();
-            LocalDate fechaVisita = v.getFecha();
-
-            if (!fechaVisita.isBefore(hace30) && !fechaVisita.isAfter(hoy)) {
+            LocalDate fecha = v.getFecha();
+            if (!fecha.isBefore(hace30) && !fecha.isAfter(hoy)) {
                 recientes.merge(zona, 1, Integer::sum);
-            } else if (!fechaVisita.isBefore(hace60) && fechaVisita.isBefore(hace30)) {
+            } else if (!fecha.isBefore(hace60) && fecha.isBefore(hace30)) {
                 anteriores.merge(zona, 1, Integer::sum);
             }
         }
 
         Map<String, Map<String, Object>> simulacion = new LinkedHashMap<>();
-        Set<String> todasLasZonas = new HashSet<>();
-        todasLasZonas.addAll(recientes.keySet());
-        todasLasZonas.addAll(anteriores.keySet());
+        Set<String> zonas = new LinkedHashSet<>();
+        zonas.addAll(recientes.keySet());
+        zonas.addAll(anteriores.keySet());
 
-        for (String zona : todasLasZonas) {
-            int visRecientes  = recientes.getOrDefault(zona, 0);
-            int visAnteriores = anteriores.getOrDefault(zona, 0);
-            double crecimiento = visAnteriores == 0
-                    ? (visRecientes > 0 ? 100.0 : 0.0)
-                    : ((visRecientes - visAnteriores) / (double) visAnteriores) * 100.0;
+        for (String zona : zonas) {
+            int visR = recientes.getOrDefault(zona, 0);
+            int visA = anteriores.getOrDefault(zona, 0);
+            double crecimiento = visA == 0
+                    ? (visR > 0 ? 100.0 : 0.0)
+                    : ((visR - visA) / (double) visA) * 100.0;
 
             Map<String, Object> datos = new LinkedHashMap<>();
-            datos.put("visitasUltimos30Dias",    visRecientes);
-            datos.put("visitasPeriodoAnterior",  visAnteriores);
+            datos.put("visitasUltimos30Dias",   visR);
+            datos.put("visitasPeriodoAnterior",  visA);
             datos.put("crecimientoPorcentaje",   Math.round(crecimiento * 10.0) / 10.0);
             datos.put("tendencia", crecimiento > 10 ? "CRECIENDO"
                     : crecimiento < -10 ? "DECAYENDO"
