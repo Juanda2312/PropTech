@@ -62,15 +62,26 @@ export class AlertasComponent implements OnInit {
     this.procesando = true;
     this.alertaService.procesarSiguiente().subscribe({
       next: a => {
-        this.toast.info(`Procesada: ${a.tipoAlerta}`);
-        this.procesando = false;
-        this.cargarAlertas();
-        this.cargarTotal();
+        // Cerrar la alerta procesada
+        this.alertaService.cerrar(a.idAlerta).subscribe({
+          next: () => {
+            this.toast.info(`Procesada y cerrada: ${a.tipoAlerta}`);
+            this.procesando = false;
+            this.cargarAlertas();
+            this.cargarTotal();
+          },
+          error: () => {
+            // Ya estaba cerrada u otro error, igual refrescar
+            this.toast.info(`Procesada: ${a.tipoAlerta}`);
+            this.procesando = false;
+            this.cargarAlertas();
+            this.cargarTotal();
+          }
+        });
       },
       error: (e: any) => { this.toast.error(e.message); this.procesando = false; }
     });
   }
-
   cerrar(alerta: Alerta) {
     this.alertaService.cerrar(alerta.idAlerta).subscribe({
       next: () => { this.toast.success('Alerta cerrada'); this.cargarAlertas(); this.cargarTotal(); },

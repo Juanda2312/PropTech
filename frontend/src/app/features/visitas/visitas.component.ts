@@ -96,7 +96,20 @@ export class VisitasComponent implements OnInit {
 
   procesarSiguiente() {
     this.visitaService.procesarSiguiente().subscribe({
-      next: v => { this.toast.success(`Visita procesada: ${v.idVisita}`); this.cargarVisitas(); },
+      next: v => {
+        // Confirmar la visita procesada
+        this.visitaService.confirmar(v.idVisita).subscribe({
+          next: () => {
+            this.toast.success(`Visita confirmada: ${v.idVisita}`);
+            this.cargarVisitas();
+          },
+          error: () => {
+            // Si ya estaba confirmada u otro estado, igual refrescar
+            this.toast.success(`Visita procesada: ${v.idVisita}`);
+            this.cargarVisitas();
+          }
+        });
+      },
       error: (e: any) => this.toast.error(e.message)
     });
   }
