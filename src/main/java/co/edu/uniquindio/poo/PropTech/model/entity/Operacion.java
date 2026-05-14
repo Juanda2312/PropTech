@@ -26,14 +26,31 @@ public class Operacion implements Comparable<Operacion> {
 
     @JsonIgnoreProperties({"inmueblesAsignados","visitasAgendadas","cierresRealizados"})
     private Asesor asesor;
+
     private LocalDate fecha;
     private TipoOperacion tipoOperacion;
     private double valorAcordado;
     private double comision;
     private String estadoProceso;
 
+    // Fecha en que vence el contrato (arriendo o renovación).
+    // Para VENTA y CANCELACION queda null
+    private LocalDate fechaVencimiento;
+
     public double calcularComision() {
         return valorAcordado * comision / 100.0;
+    }
+
+    public boolean estaProximaAVencer(int diasUmbral) {
+        if (fechaVencimiento == null) return false;
+        LocalDate hoy = LocalDate.now();
+        long diasRestantes = hoy.until(fechaVencimiento).getDays();
+        return diasRestantes >= 0 && diasRestantes <= diasUmbral;
+    }
+
+    public boolean estaVencida() {
+        if (fechaVencimiento == null) return false;
+        return LocalDate.now().isAfter(fechaVencimiento);
     }
 
     @Override
