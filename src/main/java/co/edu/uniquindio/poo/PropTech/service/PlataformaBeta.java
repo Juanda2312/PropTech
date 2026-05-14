@@ -6,6 +6,7 @@ import co.edu.uniquindio.poo.PropTech.model.enums.*;
 import co.edu.uniquindio.poo.PropTech.structures.Graph;
 import co.edu.uniquindio.poo.PropTech.structures.HashTable;
 import co.edu.uniquindio.poo.PropTech.structures.Queue;
+import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -105,7 +106,7 @@ public class PlataformaBeta {
         Cliente  cliente  = clienteService.buscarPorId(dto.getIdCliente());
         Asesor   asesor   = asesorService.buscarPorId(dto.getIdAsesor());
 
-        // Registrar precio actual en historial para deteccion de cambios frecuentes
+        // Registrar precio actual en historial para detección de cambios frecuentes
         List<Double> precios = historialPrecios.get(inmueble.getCodigo());
         if (precios == null) {
             precios = new ArrayList<>();
@@ -121,7 +122,7 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // ALERTAS AUTOMATICAS — cubre los 6 tipos del PDF
+    // ALERTAS AUTOMÁTICAS — cubre los 6 tipos del PDF
     // ================================================================
 
     public List<Alerta> generarAlertas() {
@@ -151,7 +152,7 @@ public class PlataformaBeta {
         return alertas;
     }
 
-    // 2. Visitas pendientes sin confirmar hace mas de 3 dias
+    // 2. Visitas pendientes sin confirmar hace más de 3 días
     private List<Alerta> alertarVisitasPendientesSinConfirmar() {
         List<Alerta> alertas = new ArrayList<>();
         for (Visita v : visitaService.obtenerPorEstado(EstadoVisita.PENDIENTE)) {
@@ -162,14 +163,14 @@ public class PlataformaBeta {
                         "VISITA_PENDIENTE_SIN_CONFIRMAR",
                         "La visita " + v.getIdVisita() + " del cliente " +
                                 v.getCliente().getNombre() + " lleva " + dias +
-                                " dias pendiente sin confirmar.",
+                                " días pendiente sin confirmar.",
                         NivelAtencion.MEDIO));
             }
         }
         return alertas;
     }
 
-    // 3. Clientes activos sin ninguna interaccion
+    // 3. Clientes activos sin ninguna interacción
     private List<Alerta> alertarClientesSinSeguimiento() {
         List<Alerta> alertas = new ArrayList<>();
         for (Cliente c : clienteService.obtenerTodos()) {
@@ -180,14 +181,14 @@ public class PlataformaBeta {
                         "ALT-CLI-SEG-" + c.getId(),
                         "CLIENTE_SIN_SEGUIMIENTO",
                         "El cliente " + c.getNombre() + " (" + c.getId() +
-                                ") esta activo pero no tiene ninguna interaccion registrada.",
+                                ") está activo pero no tiene ninguna interacción registrada.",
                         NivelAtencion.BAJO));
             }
         }
         return alertas;
     }
 
-    // 4. Contratos proximos a vencer (dentro de 30 dias)
+    // 4. Contratos próximos a vencer (dentro de 30 días)
     private List<Alerta> alertarContratosProximosAVencer() {
         List<Alerta> alertas = new ArrayList<>();
         for (Operacion op : operacionService.obtenerTodas()) {
@@ -205,14 +206,14 @@ public class PlataformaBeta {
                         "CONTRATO_PROXIMO_A_VENCER",
                         "El contrato " + op.getIdOperacion() + " del inmueble " +
                                 op.getInmueble().getCodigo() + " vence en " + diasRestantes +
-                                " dia(s) (" + op.getFechaVencimiento() + ").",
+                                " día(s) (" + op.getFechaVencimiento() + ").",
                         nivel));
             }
         }
         return alertas;
     }
 
-    // 5. Inmuebles disponibles con mas de 10 visitas sin cierre
+    // 5. Inmuebles disponibles con más de 10 visitas sin cierre
     private List<Alerta> alertarInmueblesConAltaDemanda() {
         List<Alerta> alertas = new ArrayList<>();
         for (Inmueble i : inmuebleService.obtenerTodos()) {
@@ -229,7 +230,7 @@ public class PlataformaBeta {
         return alertas;
     }
 
-    // 6. Operaciones activas por mas de 60 dias sin cerrarse
+    // 6. Operaciones activas por más de 60 días sin cerrarse
     private List<Alerta> alertarInmueblesReservadosSinCierre() {
         List<Alerta> alertas = new ArrayList<>();
         for (Operacion op : operacionService.obtenerTodas()) {
@@ -241,7 +242,7 @@ public class PlataformaBeta {
                         "ALT-OP-RESERV-" + op.getIdOperacion(),
                         "INMUEBLE_RESERVADO_SIN_CIERRE",
                         "El inmueble " + op.getInmueble().getCodigo() +
-                                " lleva " + dias + " dias en proceso de " +
+                                " lleva " + dias + " días en proceso de " +
                                 op.getTipoOperacion() + " sin cerrarse.",
                         NivelAtencion.ALTO));
             }
@@ -250,7 +251,7 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // DETECCION DE COMPORTAMIENTOS INUSUALES
+    // DETECCIÓN DE COMPORTAMIENTOS INUSUALES
     // ================================================================
 
     public void detectarComportamientosInusuales() {
@@ -269,7 +270,7 @@ public class PlataformaBeta {
                     "EVT-CLI-" + idCliente + "-" + System.currentTimeMillis(),
                     "EXCESO_VISITAS_CLIENTE",
                     "Cliente " + cliente.getNombre() + " tiene " + total +
-                            " visitas registradas sin haber cerrado ninguna operacion.",
+                            " visitas registradas sin haber cerrado ninguna operación.",
                     NivelAtencion.MEDIO);
         }
     }
@@ -294,7 +295,7 @@ public class PlataformaBeta {
                         "EVT-INM-" + i.getCodigo() + "-" + System.currentTimeMillis(),
                         "ALTA_DEMANDA_SIN_CIERRE",
                         "El inmueble " + i.getCodigo() + " tiene " + total +
-                                " visitas y continua disponible.",
+                                " visitas y continúa disponible.",
                         NivelAtencion.ALTO);
             }
         }
@@ -322,7 +323,7 @@ public class PlataformaBeta {
                         "EVT-ZONA-" + entry.getKey().replace(" ", "_") + "-" + System.currentTimeMillis(),
                         "CONCENTRACION_ZONA",
                         "La zona '" + entry.getKey() + "' tiene " + entry.getValue() +
-                                " visitas recientes, concentracion inusual.",
+                                " visitas recientes, concentración inusual.",
                         NivelAtencion.BAJO);
             }
         }
@@ -341,66 +342,63 @@ public class PlataformaBeta {
     }
 
     // ================================================================
-    // ANALISIS CON GRAFOS — BFS usa Queue propia, sin java.util.LinkedList
+    // ANÁLISIS CON GRAFOS
+    // Internamente se usan SimpleLinkedList (estructura propia) del Graph.
+    // Solo al retornar al controller HTTP se convierte a java.util.List
+    // para compatibilidad con la serialización JSON de Spring.
     // ================================================================
 
+    /**
+     * Retorna los clientes conectados a un inmueble en el grafo.
+     * getNeighbors usa SimpleLinkedList internamente.
+     */
     public List<String> obtenerClientesConectadosAInmueble(String codigoInmueble) {
-        return grafoRelaciones.getNeighbors(codigoInmueble);
-    }
-
-    public List<String> obtenerInmueblesConectadosACliente(String idCliente) {
-        return grafoRelaciones.getNeighbors(idCliente);
+        return linkedListToJavaList(grafoRelaciones.getNeighbors(codigoInmueble));
     }
 
     /**
-     * BFS desde un nodo usando Queue y HashTable propias.
-     * No usa java.util.LinkedList ni java.util.HashSet.
+     * Retorna los inmuebles conectados a un cliente en el grafo.
+     * getNeighbors usa SimpleLinkedList internamente.
+     */
+    public List<String> obtenerInmueblesConectadosACliente(String idCliente) {
+        return linkedListToJavaList(grafoRelaciones.getNeighbors(idCliente));
+    }
+
+    /**
+     * BFS desde un nodo usando Queue y HashTable propias (dentro de Graph).
+     * Internamente no se usa ninguna clase de java.util en el recorrido.
+     * Solo al retornar al controller se convierte a java.util.List.
      */
     public List<String> analizarRelacionesBFS(String nodoInicio) {
-        List<String> resultado = new ArrayList<>();
-        if (!grafoRelaciones.containsVertex(nodoInicio)) return resultado;
-
-        // Queue propia en lugar de java.util.LinkedList
-        Queue<String> cola = new Queue<>();
-        // HashTable propia en lugar de java.util.HashSet
-        HashTable<String, Boolean> visitados = new HashTable<>();
-
-        cola.enqueue(nodoInicio);
-        visitados.put(nodoInicio, true);
-
-        while (!cola.isEmpty()) {
-            String actual = cola.dequeue();
-            resultado.add(actual);
-            for (String vecino : grafoRelaciones.getNeighbors(actual)) {
-                if (!visitados.containsKey(vecino)) {
-                    visitados.put(vecino, true);
-                    cola.enqueue(vecino);
-                }
-            }
-        }
-        return resultado;
+        // breadthFirstSearch usa Queue propia y HashTable propia internamente
+        SimpleLinkedList<String> resultado = grafoRelaciones.breadthFirstSearch(nodoInicio);
+        return linkedListToJavaList(resultado);
     }
 
     /**
      * Clientes con perfil similar: dado un cliente, busca otros clientes
      * que visitaron los mismos inmuebles (vecinos de vecinos en el grafo).
+     * Internamente usa SimpleLinkedList y HashTable propias.
      */
     public List<String> obtenerClientesConPerfilSimilar(String idCliente) {
-        List<String> inmueblesDelCliente = grafoRelaciones.getNeighbors(idCliente);
-        // HashTable propia para evitar duplicados
-        HashTable<String, Boolean> clientesSimilares = new HashTable<>();
-        List<String> resultado = new ArrayList<>();
+        SimpleLinkedList<String> inmueblesDelCliente = grafoRelaciones.getNeighbors(idCliente);
+
+        // HashTable propia para evitar duplicados — sin java.util.Set
+        HashTable<String, Boolean> clientesSimilaresVistos = new HashTable<>();
+        SimpleLinkedList<String> resultado = new SimpleLinkedList<>();
 
         for (String codigoInmueble : inmueblesDelCliente) {
-            for (String vecino : grafoRelaciones.getNeighbors(codigoInmueble)) {
-                if (!vecino.equals(idCliente) && vecino.startsWith("CLI-")
-                        && !clientesSimilares.containsKey(vecino)) {
-                    clientesSimilares.put(vecino, true);
-                    resultado.add(vecino);
+            SimpleLinkedList<String> vecinos = grafoRelaciones.getNeighbors(codigoInmueble);
+            for (String vecino : vecinos) {
+                if (!vecino.equals(idCliente)
+                        && vecino.startsWith("CLI-")
+                        && !clientesSimilaresVistos.containsKey(vecino)) {
+                    clientesSimilaresVistos.put(vecino, true);
+                    resultado.addLast(vecino);
                 }
             }
         }
-        return resultado;
+        return linkedListToJavaList(resultado);
     }
 
     // ================================================================
@@ -424,8 +422,8 @@ public class PlataformaBeta {
      * Clientes con alta probabilidad de cierre:
      * - Estado ACTIVO
      * - Tienen al menos un favorito guardado
-     * - Visitaron 2 o mas inmuebles
-     * - Su presupuesto alcanza algun inmueble disponible del tipo que buscan
+     * - Visitaron 2 o más inmuebles
+     * - Su presupuesto alcanza algún inmueble disponible del tipo que buscan
      */
     public List<Cliente> obtenerClientesConAltaProbabilidadDeCierre() {
         List<Cliente> resultado = new ArrayList<>();
@@ -433,7 +431,7 @@ public class PlataformaBeta {
 
         for (Cliente c : clienteService.obtenerTodos()) {
             if (c.getEstadoBusqueda() != EstadoBusqueda.ACTIVO) continue;
-            boolean tieneFavoritos  = !c.getInmueblesGuardados().isEmpty();
+            boolean tieneFavoritos   = !c.getInmueblesGuardados().isEmpty();
             boolean visitoSuficiente = c.getPropiedadesVisitadas().getSize() >= 2;
             boolean hayInmuebleAcorde = false;
             for (Inmueble i : disponibles) {
@@ -451,8 +449,8 @@ public class PlataformaBeta {
     }
 
     /**
-     * Simulacion de crecimiento de demanda por sector:
-     * compara visitas de los ultimos 30 dias vs los 30 anteriores por barrio.
+     * Simulación de crecimiento de demanda por sector:
+     * compara visitas de los últimos 30 días vs los 30 anteriores por barrio.
      */
     public Map<String, Map<String, Object>> simularCrecimientoDemandaPorSector() {
         Map<String, Integer> recientes  = new LinkedHashMap<>();
@@ -509,5 +507,21 @@ public class PlataformaBeta {
 
     public Visita procesarVisitaVIP() {
         return visitaService.procesarSiguienteVIP();
+    }
+
+    // ================================================================
+    // HELPER — Conversión de SimpleLinkedList a java.util.List
+    // Solo se usa en el boundary hacia los controllers HTTP para
+    // compatibilidad con la serialización JSON de Spring.
+    // Las estructuras de datos propias se mantienen durante todo
+    // el procesamiento interno.
+    // ================================================================
+
+    private List<String> linkedListToJavaList(SimpleLinkedList<String> lista) {
+        List<String> resultado = new ArrayList<>();
+        for (String elemento : lista) {
+            resultado.add(elemento);
+        }
+        return resultado;
     }
 }

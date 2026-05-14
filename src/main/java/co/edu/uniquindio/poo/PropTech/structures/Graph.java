@@ -1,18 +1,20 @@
 package co.edu.uniquindio.poo.PropTech.structures;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 /**
- *   - HashTable: acceso O(1) por vertice para obtener sus vecinos.
- *   - SimpleLinkedList: almacena los vecinos de cada vertice sin costo
- *     de redimension fija, permitiendo agregar aristas en O(1) al final.
+ * Grafo no dirigido / dirigido implementado con lista de adyacencia.
+ *
+ * Estructuras propias utilizadas:
+ *   - HashTable : acceso O(1) por vértice para obtener sus vecinos.
+ *   - SimpleLinkedList : almacena los vecinos de cada vértice sin
+ *     costo de redimensión fija, permitiendo agregar aristas en O(1) al final.
+ *   - Queue : recorrido BFS (propio).
+ *   - Stack : recorrido DFS iterativo (propio).
+ *
+ * NO se importa ninguna clase de java.util.
  */
 public class Graph<T extends Comparable<T>> {
 
-    // Lista de adyacencia: vertice -> lista de vecinos
+    // Lista de adyacencia: vértice -> lista de vecinos
     private final HashTable<T, SimpleLinkedList<T>> adjacencyList;
     private final boolean directed;
 
@@ -22,7 +24,7 @@ public class Graph<T extends Comparable<T>> {
     }
 
     // ----------------------------------------------------------------
-    // Vertices
+    // Vértices
     // ----------------------------------------------------------------
 
     public void addVertex(T vertex) {
@@ -38,7 +40,7 @@ public class Graph<T extends Comparable<T>> {
     public void removeVertex(T vertex) {
         if (!adjacencyList.containsKey(vertex)) return;
         adjacencyList.remove(vertex);
-        // Eliminar el vertice de las listas de vecinos de los demas
+        // Eliminar el vértice de las listas de vecinos de los demás
         for (SimpleLinkedList<T> vecinos : adjacencyList) {
             int idx = vecinos.getIndex(vertex);
             if (idx >= 0) vecinos.remove(idx);
@@ -77,15 +79,12 @@ public class Graph<T extends Comparable<T>> {
     }
 
     // ----------------------------------------------------------------
-    // Vecinos — devuelve List<T> para compatibilidad con el resto del sistema
+    // Vecinos — retorna SimpleLinkedList propia
     // ----------------------------------------------------------------
 
-    public List<T> getNeighbors(T vertex) {
-        List<T> resultado = new ArrayList<>();
-        if (!adjacencyList.containsKey(vertex)) return resultado;
-        SimpleLinkedList<T> vecinos = adjacencyList.get(vertex);
-        for (T v : vecinos) resultado.add(v);
-        return resultado;
+    public SimpleLinkedList<T> getNeighbors(T vertex) {
+        if (!adjacencyList.containsKey(vertex)) return new SimpleLinkedList<>();
+        return adjacencyList.get(vertex);
     }
 
     // ----------------------------------------------------------------
@@ -94,21 +93,21 @@ public class Graph<T extends Comparable<T>> {
 
     /**
      * BFS usando Queue propia.
-     * Retorna la lista de nodos visitados en orden de amplitud.
+     * Retorna SimpleLinkedList con los nodos visitados en orden de amplitud.
      */
-    public List<T> breadthFirstSearch(T start) {
-        List<T> resultado = new ArrayList<>();
+    public SimpleLinkedList<T> breadthFirstSearch(T start) {
+        SimpleLinkedList<T> resultado = new SimpleLinkedList<>();
         if (!adjacencyList.containsKey(start)) return resultado;
 
-        Queue<T> cola       = new Queue<>();
-        HashTable<T, Boolean> visitados = new HashTable<>();
+        Queue<T> cola                    = new Queue<>();
+        HashTable<T, Boolean> visitados  = new HashTable<>();
 
         cola.enqueue(start);
         visitados.put(start, true);
 
         while (!cola.isEmpty()) {
             T actual = cola.dequeue();
-            resultado.add(actual);
+            resultado.addLast(actual);
 
             SimpleLinkedList<T> vecinos = adjacencyList.get(actual);
             if (vecinos == null) continue;
@@ -124,14 +123,14 @@ public class Graph<T extends Comparable<T>> {
 
     /**
      * DFS usando Stack propia (iterativo).
-     * Retorna la lista de nodos visitados en orden de profundidad.
+     * Retorna SimpleLinkedList con los nodos visitados en orden de profundidad.
      */
-    public List<T> depthFirstSearch(T start) {
-        List<T> resultado = new ArrayList<>();
+    public SimpleLinkedList<T> depthFirstSearch(T start) {
+        SimpleLinkedList<T> resultado    = new SimpleLinkedList<>();
         if (!adjacencyList.containsKey(start)) return resultado;
 
-        Stack<T> pila       = new Stack<>();
-        HashTable<T, Boolean> visitados = new HashTable<>();
+        Stack<T> pila                    = new Stack<>();
+        HashTable<T, Boolean> visitados  = new HashTable<>();
 
         pila.push(start);
 
@@ -139,7 +138,7 @@ public class Graph<T extends Comparable<T>> {
             T actual = pila.pop();
             if (visitados.containsKey(actual)) continue;
             visitados.put(actual, true);
-            resultado.add(actual);
+            resultado.addLast(actual);
 
             SimpleLinkedList<T> vecinos = adjacencyList.get(actual);
             if (vecinos == null) continue;
@@ -153,7 +152,7 @@ public class Graph<T extends Comparable<T>> {
     }
 
     // ----------------------------------------------------------------
-    // Informacion del grafo
+    // Información del grafo
     // ----------------------------------------------------------------
 
     public int getVertexCount() {
@@ -173,7 +172,6 @@ public class Graph<T extends Comparable<T>> {
     }
 
     public void clear() {
-        // Vaciamos cada lista antes de limpiar la tabla
         for (SimpleLinkedList<T> vecinos : adjacencyList) {
             vecinos.removeAll();
         }
@@ -181,8 +179,6 @@ public class Graph<T extends Comparable<T>> {
 
     public void print() {
         for (SimpleLinkedList<T> vecinos : adjacencyList) {
-            // No podemos imprimir la clave directamente desde el iterador de valores,
-            // asi que imprimimos solo los vecinos de cada nodo recorrido
             System.out.print("[ ");
             for (T v : vecinos) System.out.print(v + " ");
             System.out.println("]");
