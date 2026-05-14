@@ -3,6 +3,7 @@ package co.edu.uniquindio.poo.PropTech.service;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.entity.Recomendacion;
+import co.edu.uniquindio.poo.PropTech.model.enums.Zona;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,22 +24,35 @@ public class RecomendacionService {
         this.clienteService  = clienteService;
     }
 
-    // ----------------------------------------------------------------
-    // Motor de recomendación por preferencias del cliente
-    // ----------------------------------------------------------------
 
     public List<Recomendacion> generarParaCliente(String idCliente) {
         Cliente cliente = clienteService.buscarPorId(idCliente);
         List<Recomendacion> recomendaciones = new ArrayList<>();
 
+        // Construimos el conjunto de barrios que el cliente ya visitó
+        // para el criterio 5 (propiedades similares visitadas)
+        List<String> barriosVisitados = new ArrayList<>();
+        cliente.getPropiedadesVisitadas().forEach(i -> barriosVisitados.add(i.getBarrio()));
+
+        // Construimos el conjunto de barrios que el cliente consultó
+        // para el criterio 5 (historial de consultas)
+        List<String> barriosConsultados = new ArrayList<>();
+        cliente.getInmueblesConsultados().forEach(i -> barriosConsultados.add(i.getBarrio()));
+
         for (Inmueble inmueble : inmuebleService.filtrarDisponibles()) {
-            Recomendacion rec = new Recomendacion(
-                    UUID.randomUUID().toString(), inmueble, 0.0, "AUTO", LocalDate.now()
-            );
-            double puntaje = rec.calcularCoincidencia(cliente);
+            double puntaje = calcularPuntaje(cliente, inmueble, barriosVisitados, barriosConsultados);
 
             if (puntaje > 0) {
-                rec.setPuntaje(puntaje);
+                String criterio = construirDescripcionCriterio(
+                        cliente, inmueble, barriosVisitados, barriosConsultados);
+
+                Recomendacion rec = new Recomendacion(
+                        UUID.randomUUID().toString(),
+                        inmueble,
+                        puntaje,
+                        criterio,
+                        LocalDate.now()
+                );
                 recomendaciones.add(rec);
                 clienteService.agregarRecomendacion(idCliente, rec);
             }
@@ -46,6 +60,91 @@ public class RecomendacionService {
 
         recomendaciones.sort(Comparator.reverseOrder());
         return recomendaciones;
+    }
+
+    // ----------------------------------------------------------------
+    // Cálculo de puntaje con los 6 criterios
+    // ----------------------------------------------------------------
+
+    private double calcularPuntaje(Cliente cliente, Inmueble inmueble,
+                                   List<String> barriosVisitados,
+                                   List<String> barriosConsultados) {
+        double puntaje = 0;
+
+        // Criterio 1: presupuesto — 40 pts
+        if (inmueble.getPrecio() <= cliente.getPresupuesto()) {
+            puntaje += 40;
+        }
+
+        // Criterio 2: tipo de inmueble deseado — 20 pts
+        if (inmueble.getTipoInmueble() == cliente.getTipoInmuebleDeseado()) {
+            puntaje += 20;
+        }
+
+        // Criterio 3: habitaciones mínimas requeridas — 15 pts
+        if (inmueble.getHabitaciones() >= cliente.getHabitacionesMinimas()) {
+            puntaje += 15;
+        }
+
+        // Criterio 4: zona de interés del cliente — 15 pts
+        // Comparamos el barrio del inmueble con las zonas que le interesan al cliente
+        if (coincideConZonasInteres(cliente, inmueble)) {
+            puntaje += 15;
+        }
+
+        // Criterio 5: historial de consultas — el cliente ya consultó inmuebles del mismo barrio — 5 pts
+        if (barriosConsultados.contains(inmueble.getBarrio())) {
+            puntaje += 5;
+        }
+
+        // Criterio 6: propiedades similares visitadas anteriormente — mismo barrio visitado — 5 pts
+        if (barriosVisitados.contains(inmueble.getBarrio())) {
+            puntaje += 5;
+        }
+
+        return puntaje;
+    }
+
+    // Compara las zonas de interés del cliente (NORTE, SUR, ESTE, OESTE)
+    // con la ciudad/barrio del inmueble usando coincidencia por nombre
+    private boolean coincideConZonasInteres(Cliente cliente, Inmueble inmueble) {
+        if (cliente.getZonasInteres() == null || cliente.getZonasInteres().length == 0) {
+            return false;
+        }
+        String barrio = inmueble.getBarrio().toUpperCase();
+        String ciudad = inmueble.getCiudad().toUpperCase();
+
+        for (Zona zona : cliente.getZonasInteres()) {
+            String nombreZona = zona.name(); // NORTE, SUR, ESTE, OESTE
+            if (barrio.contains(nombreZona) || ciudad.contains(nombreZona)) {
+                return true;
+            }
+        }
+        // Si el cliente tiene zona NORTE y el barrio es "El Poblado" ,
+        // no coincide por nombre, pero sí por asignación conocida.
+        // La comparación directa por nombre es la más segura sin una tabla de mapeo.
+        return false;
+    }
+
+    private String construirDescripcionCriterio(Cliente cliente, Inmueble inmueble,
+                                                List<String> barriosVisitados,
+                                                List<String> barriosConsultados) {
+        List<String> razones = new ArrayList<>();
+
+        if (inmueble.getPrecio() <= cliente.getPresupuesto())
+            razones.add("precio dentro del presupuesto");
+        if (inmueble.getTipoInmueble() == cliente.getTipoInmuebleDeseado())
+            razones.add("tipo de inmueble coincide");
+        if (inmueble.getHabitaciones() >= cliente.getHabitacionesMinimas())
+            razones.add("habitaciones suficientes");
+        if (coincideConZonasInteres(cliente, inmueble))
+            razones.add("zona de interés del cliente");
+        if (barriosConsultados.contains(inmueble.getBarrio()))
+            razones.add("barrio consultado anteriormente");
+        if (barriosVisitados.contains(inmueble.getBarrio()))
+            razones.add("visitó inmuebles similares en este barrio");
+
+        return String.join(", ", razones);
     }
 
     // ----------------------------------------------------------------
