@@ -1,85 +1,91 @@
 <!-- src/app/features/asesores/asesores.component.html -->
 <div style="animation:fadeIn 300ms ease">
-  <div class="page-header">
-    <h1 class="page-title">🧑‍💼 <span>Asesores</span></h1>
-    <div class="page-actions">
-      <button class="btn btn-secondary" (click)="toggleRanking()">
-        {{ rankingMode ? '📋 Ver todos' : '🏆 Ranking por cierres' }}
-      </button>
-      <button class="btn btn-primary" (click)="abrirCrear()">+ Nuevo Asesor</button>
-    </div>
-  </div>
-
-  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
-
-  <div *ngIf="!loading && asesores.length === 0" class="empty-state card">
-    <span class="icon">🧑‍💼</span>
-    <h3>Sin asesores</h3>
-    <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nuevo Asesor</button>
-  </div>
-
-  <div *ngIf="!loading && asesores.length > 0" class="asesores-grid">
-    <div *ngFor="let a of asesores; let i = index" class="asesor-card card">
-      <div class="asesor-rank" *ngIf="rankingMode">
-        <span [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">#{{ i+1 }}</span>
-      </div>
-      <div class="asesor-avatar">{{ a.nombre.charAt(0) }}</div>
-      <div class="asesor-info">
-        <h3>{{ a.nombre }}</h3>
-        <p class="text-muted">{{ a.especialidadZona || 'Sin zona asignada' }}</p>
-        <p style="font-size:0.8rem;color:var(--text-secondary)">{{ a.contacto }}</p>
-      </div>
-      <div class="asesor-meta">
-        <div class="meta-item">
-          <span class="meta-label">ID</span>
-          <code style="color:var(--gold);font-size:0.8rem">{{ a.id }}</code>
+    <div class="page-header">
+        <h1 class="page-title">🧑‍💼 <span>Asesores</span></h1>
+        <div class="page-actions">
+            <button class="btn btn-secondary" (click)="toggleRanking()">
+                {{ rankingMode ? '📋 Ver todos' : '🏆 Ranking por cierres' }}
+            </button>
+            <button class="btn btn-primary" (click)="abrirCrear()">+ Nuevo Asesor</button>
         </div>
-        <div class="meta-item" *ngIf="cargaMap[a.id] !== undefined">
-          <span class="meta-label">Carga</span>
-          <span class="badge" [class]="cargaMap[a.id] > 15 ? 'badge-red' : cargaMap[a.id] > 8 ? 'badge-amber' : 'badge-green'">
+    </div>
+
+    <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+    <div *ngIf="!loading && asesores.length === 0" class="empty-state card">
+        <span class="icon">🧑‍💼</span>
+        <h3>Sin asesores</h3>
+        <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nuevo Asesor</button>
+    </div>
+
+    <div *ngIf="!loading && asesores.length > 0" class="asesores-grid">
+        <div *ngFor="let a of asesores; let i = index" class="asesor-card card">
+            <div class="asesor-rank" *ngIf="rankingMode">
+                <span [class.gold]="i===0" [class.silver]="i===1" [class.bronze]="i===2">#{{ i+1 }}</span>
+            </div>
+            <div class="asesor-avatar">{{ a.nombre.charAt(0) }}</div>
+            <div class="asesor-info">
+                <h3>{{ a.nombre }}</h3>
+                <p class="text-muted">{{ a.especialidadZona || 'Sin zona asignada' }}</p>
+                <p style="font-size:0.8rem;color:var(--text-secondary)">{{ a.contacto }}</p>
+            </div>
+            <div class="asesor-meta">
+                <div class="meta-item">
+                    <span class="meta-label">ID (Cédula)</span>
+                    <code style="color:var(--gold);font-size:0.8rem">{{ a.id }}</code>
+                </div>
+                <div class="meta-item" *ngIf="cargaMap[a.id] !== undefined">
+                    <span class="meta-label">Carga</span>
+                    <span class="badge" [class]="cargaMap[a.id] > 15 ? 'badge-red' : cargaMap[a.id] > 8 ? 'badge-amber' : 'badge-green'">
             {{ cargaMap[a.id] }}
           </span>
+                </div>
+            </div>
+            <div class="asesor-actions">
+                <button class="btn btn-secondary btn-sm" (click)="abrirEditar(a)">✏️ Editar</button>
+            </div>
         </div>
-      </div>
-      <div class="asesor-actions">
-        <button class="btn btn-secondary btn-sm" (click)="abrirEditar(a)">✏️ Editar</button>
-      </div>
     </div>
-  </div>
 </div>
 
 <!-- Modal -->
 <div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>{{ editMode ? '✏️ Editar Asesor' : '+ Nuevo Asesor' }}</h2>
-      <button class="modal-close" (click)="showModal=false">✕</button>
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ editMode ? '✏️ Editar Asesor' : '+ Nuevo Asesor' }}</h2>
+            <button class="modal-close" (click)="showModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Cédula (ID) *</label>
+                    <input class="form-control" [(ngModel)]="form.id" [disabled]="editMode"
+                           placeholder="ej. 1071234567"
+                           maxlength="10"
+                           title="Número de cédula colombiana — exactamente 10 dígitos">
+                    <span style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem">
+            Exactamente 10 dígitos numéricos
+          </span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombre *</label>
+                    <input class="form-control" [(ngModel)]="form.nombre" placeholder="ej. María García">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Contacto</label>
+                    <input class="form-control" [(ngModel)]="form.contacto" placeholder="ej. 3001234567">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Zona Especialidad</label>
+                    <input class="form-control" [(ngModel)]="form.especialidadZona" placeholder="ej. Norte / Sur / Centro">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+                <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+                    {{ submitting ? 'Guardando...' : (editMode ? 'Actualizar' : 'Registrar') }}
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">ID *</label>
-          <input class="form-control" [(ngModel)]="form.id" [disabled]="editMode" placeholder="ASR-001">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nombre *</label>
-          <input class="form-control" [(ngModel)]="form.nombre" placeholder="María García">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Contacto</label>
-          <input class="form-control" [(ngModel)]="form.contacto" placeholder="3001234567">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Zona Especialidad</label>
-          <input class="form-control" [(ngModel)]="form.especialidadZona" placeholder="Norte / Sur / Centro">
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
-        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
-          {{ submitting ? 'Guardando...' : (editMode ? 'Actualizar' : 'Registrar') }}
-        </button>
-      </div>
-    </div>
-  </div>
 </div>

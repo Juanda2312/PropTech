@@ -1,162 +1,167 @@
 <!-- src/app/features/visitas/visitas.component.html -->
 <div style="animation:fadeIn 300ms ease">
-  <div class="page-header">
-    <h1 class="page-title">📅 <span>Visitas</span></h1>
-    <div class="page-actions">
-      <button class="btn btn-secondary" (click)="procesarSiguiente()">⏭ Procesar siguiente</button>
-      <button class="btn btn-primary" (click)="abrirCrear()">+ Nueva Visita</button>
+    <div class="page-header">
+        <h1 class="page-title">📅 <span>Visitas</span></h1>
+        <div class="page-actions">
+            <button class="btn btn-secondary" (click)="procesarSiguiente()">⏭ Procesar siguiente</button>
+            <button class="btn btn-primary" (click)="abrirCrear()">+ Nueva Visita</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Filtro estado -->
-  <div class="filters-bar">
-    <div class="form-group">
-      <label class="form-label">Estado</label>
-      <select class="form-control" [(ngModel)]="filtroEstado" (change)="cargarVisitas()">
-        <option value="">Todos</option>
-        <option *ngFor="let e of estados" [value]="e">{{ e }}</option>
-      </select>
+    <!-- Filtro estado -->
+    <div class="filters-bar">
+        <div class="form-group">
+            <label class="form-label">Estado</label>
+            <select class="form-control" [(ngModel)]="filtroEstado" (change)="cargarVisitas()">
+                <option value="">Todos</option>
+                <option *ngFor="let e of estados" [value]="e">{{ e }}</option>
+            </select>
+        </div>
+        <button class="btn btn-ghost" style="align-self:flex-end" (click)="filtroEstado=''; cargarVisitas()">Limpiar</button>
     </div>
-    <button class="btn btn-ghost" style="align-self:flex-end" (click)="filtroEstado=''; cargarVisitas()">Limpiar</button>
-  </div>
 
-  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+    <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
 
-  <div *ngIf="!loading && visitas.length === 0" class="empty-state card">
-    <span class="icon">📅</span>
-    <h3>Sin visitas</h3>
-    <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nueva Visita</button>
-  </div>
+    <div *ngIf="!loading && visitas.length === 0" class="empty-state card">
+        <span class="icon">📅</span>
+        <h3>Sin visitas</h3>
+        <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nueva Visita</button>
+    </div>
 
-  <div *ngIf="!loading && visitas.length > 0" class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Inmueble</th><th>Asesor</th><th>Estado</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let v of visitas">
-          <td><code style="color:var(--gold);font-size:0.8rem">{{ v.idVisita }}</code></td>
-          <td>{{ v.fecha }}</td>
-          <td>{{ v.hora }}</td>
-          <td>{{ v.cliente?.nombre }}</td>
-          <td style="font-size:0.8rem;max-width:150px" class="truncate">{{ v.inmueble?.direccion }}</td>
-          <td>{{ v.asesor?.nombre }}</td>
-          <td><span class="badge" [class]="estadoBadge(v.estado)">{{ v.estado }}</span></td>
-          <td>
-            <div class="table-actions">
-              <button class="btn btn-success btn-sm" title="Confirmar"
-                *ngIf="v.estado==='PENDIENTE' || v.estado==='REPROGRAMADA'"
-                (click)="confirmar(v)">✓</button>
-              <button class="btn btn-primary btn-sm" title="Marcar realizada"
-                *ngIf="v.estado==='CONFIRMADA'"
-                (click)="abrirRealizar(v)">✅</button>
-              <button class="btn btn-danger btn-sm" title="Cancelar"
-                *ngIf="v.estado!=='CANCELADA' && v.estado!=='REALIZADA'"
-                (click)="abrirCancelar(v)">✕</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ visitas.length }} visita(s)</div>
+    <div *ngIf="!loading && visitas.length > 0" class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th><th>Fecha</th><th>Hora</th><th>Cliente</th><th>Inmueble</th><th>Asesor</th><th>Estado</th><th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let v of visitas">
+                <td><code style="color:var(--gold);font-size:0.8rem">{{ v.idVisita }}</code></td>
+                <td>{{ v.fecha }}</td>
+                <td>{{ v.hora }}</td>
+                <td>{{ v.cliente?.nombre }}</td>
+                <td style="font-size:0.8rem;max-width:150px" class="truncate">{{ v.inmueble?.direccion }}</td>
+                <td>{{ v.asesor?.nombre }}</td>
+                <td><span class="badge" [class]="estadoBadge(v.estado)">{{ v.estado }}</span></td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn btn-success btn-sm" title="Confirmar"
+                                *ngIf="v.estado==='PENDIENTE' || v.estado==='REPROGRAMADA'"
+                                (click)="confirmar(v)">✓</button>
+                        <button class="btn btn-primary btn-sm" title="Marcar realizada"
+                                *ngIf="v.estado==='CONFIRMADA'"
+                                (click)="abrirRealizar(v)">✅</button>
+                        <button class="btn btn-danger btn-sm" title="Cancelar"
+                                *ngIf="v.estado!=='CANCELADA' && v.estado!=='REALIZADA'"
+                                (click)="abrirCancelar(v)">✕</button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ visitas.length }} visita(s)</div>
 </div>
 
 <!-- Modal nueva visita -->
 <div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
-  <div class="modal" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>+ Nueva Visita</h2>
-      <button class="modal-close" (click)="showModal=false">✕</button>
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>+ Nueva Visita</h2>
+            <button class="modal-close" (click)="showModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">ID Visita *</label>
+                    <input class="form-control" [(ngModel)]="form.idVisita"
+                           placeholder="ej. V011"
+                           title="Identificador único de la visita (ej. V011, V012...)">
+                    <span style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem">
+            Formato: V + número (ej. V011)
+          </span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cliente *</label>
+                    <select class="form-control" [(ngModel)]="form.idCliente">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }} ({{ c.id }})</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Inmueble *</label>
+                    <select class="form-control" [(ngModel)]="form.codigoInmueble">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let i of inmuebles" [value]="i.codigo">{{ i.codigo }} - {{ i.direccion }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Asesor *</label>
+                    <select class="form-control" [(ngModel)]="form.idAsesor">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha *</label>
+                    <input type="date" class="form-control" [(ngModel)]="form.fecha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hora *</label>
+                    <input type="time" class="form-control" [(ngModel)]="form.hora">
+                </div>
+            </div>
+            <div class="form-group mt-2">
+                <label class="form-label">Observaciones</label>
+                <input class="form-control" [(ngModel)]="form.observaciones" placeholder="Notas adicionales...">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+                <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+                    {{ submitting ? 'Guardando...' : 'Programar Visita' }}
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">ID Visita *</label>
-          <input class="form-control" [(ngModel)]="form.idVisita" placeholder="VIS-001">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cliente *</label>
-          <select class="form-control" [(ngModel)]="form.idCliente">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Inmueble *</label>
-          <select class="form-control" [(ngModel)]="form.codigoInmueble">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let i of inmuebles" [value]="i.codigo">{{ i.codigo }} - {{ i.direccion }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Asesor *</label>
-          <select class="form-control" [(ngModel)]="form.idAsesor">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha *</label>
-          <input type="date" class="form-control" [(ngModel)]="form.fecha">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Hora *</label>
-          <input type="time" class="form-control" [(ngModel)]="form.hora">
-        </div>
-      </div>
-      <div class="form-group mt-2">
-        <label class="form-label">Observaciones</label>
-        <input class="form-control" [(ngModel)]="form.observaciones" placeholder="Notas adicionales...">
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
-        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
-          {{ submitting ? 'Guardando...' : 'Programar Visita' }}
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Modal cancelar -->
 <div class="modal-overlay" *ngIf="showCancelModal" (click)="showCancelModal=false">
-  <div class="modal" style="max-width:400px" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>Cancelar Visita</h2>
-      <button class="modal-close" (click)="showCancelModal=false">✕</button>
+    <div class="modal" style="max-width:400px" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>Cancelar Visita</h2>
+            <button class="modal-close" (click)="showCancelModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Motivo de cancelación</label>
+                <input class="form-control" [(ngModel)]="observacionInput" placeholder="Indique el motivo...">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showCancelModal=false">Volver</button>
+                <button class="btn btn-danger" (click)="confirmarCancelacion()">Cancelar Visita</button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Motivo de cancelación</label>
-        <input class="form-control" [(ngModel)]="observacionInput" placeholder="Indique el motivo...">
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" (click)="showCancelModal=false">Volver</button>
-        <button class="btn btn-danger" (click)="confirmarCancelacion()">Cancelar Visita</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Modal realizar -->
 <div class="modal-overlay" *ngIf="showRealizarModal" (click)="showRealizarModal=false">
-  <div class="modal" style="max-width:400px" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>✅ Marcar como Realizada</h2>
-      <button class="modal-close" (click)="showRealizarModal=false">✕</button>
+    <div class="modal" style="max-width:400px" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>✅ Marcar como Realizada</h2>
+            <button class="modal-close" (click)="showRealizarModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Observaciones de la visita</label>
+                <input class="form-control" [(ngModel)]="observacionInput" placeholder="Describe cómo fue la visita...">
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showRealizarModal=false">Volver</button>
+                <button class="btn btn-success" (click)="confirmarRealizada()">Confirmar</button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Observaciones de la visita</label>
-        <input class="form-control" [(ngModel)]="observacionInput" placeholder="Describe cómo fue la visita...">
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" (click)="showRealizarModal=false">Volver</button>
-        <button class="btn btn-success" (click)="confirmarRealizada()">Confirmar</button>
-      </div>
-    </div>
-  </div>
 </div>

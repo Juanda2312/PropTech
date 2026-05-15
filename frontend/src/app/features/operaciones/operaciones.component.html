@@ -1,130 +1,135 @@
 <!-- src/app/features/operaciones/operaciones.component.html -->
 <div style="animation:fadeIn 300ms ease">
-  <div class="page-header">
-    <h1 class="page-title">📋 <span>Operaciones</span></h1>
-    <div class="page-actions">
-      <button class="btn btn-primary" (click)="abrirCrear()">+ Nueva Operación</button>
+    <div class="page-header">
+        <h1 class="page-title">📋 <span>Operaciones</span></h1>
+        <div class="page-actions">
+            <button class="btn btn-primary" (click)="abrirCrear()">+ Nueva Operación</button>
+        </div>
     </div>
-  </div>
 
-  <div class="filters-bar">
-    <div class="form-group">
-      <label class="form-label">Tipo</label>
-      <select class="form-control" [(ngModel)]="filtroTipo" (change)="cargarOperaciones()">
-        <option value="">Todos</option>
-        <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
-      </select>
+    <div class="filters-bar">
+        <div class="form-group">
+            <label class="form-label">Tipo</label>
+            <select class="form-control" [(ngModel)]="filtroTipo" (change)="cargarOperaciones()">
+                <option value="">Todos</option>
+                <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+            </select>
+        </div>
+        <button class="btn btn-ghost" style="align-self:flex-end" (click)="filtroTipo=''; cargarOperaciones()">Limpiar</button>
     </div>
-    <button class="btn btn-ghost" style="align-self:flex-end" (click)="filtroTipo=''; cargarOperaciones()">Limpiar</button>
-  </div>
 
-  <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+    <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
 
-  <div *ngIf="!loading && operaciones.length === 0" class="empty-state card">
-    <span class="icon">📋</span>
-    <h3>Sin operaciones</h3>
-    <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nueva Operación</button>
-  </div>
+    <div *ngIf="!loading && operaciones.length === 0" class="empty-state card">
+        <span class="icon">📋</span>
+        <h3>Sin operaciones</h3>
+        <button class="btn btn-primary mt-2" (click)="abrirCrear()">+ Nueva Operación</button>
+    </div>
 
-  <div *ngIf="!loading && operaciones.length > 0" class="table-wrapper">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Tipo</th><th>Inmueble</th><th>Cliente</th>
-          <th>Asesor</th><th>Valor</th><th>Comisión %</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let op of operaciones">
-          <td><code style="color:var(--gold);font-size:0.8rem">{{ op.idOperacion }}</code></td>
-          <td><span class="badge" [class]="tipoBadge(op.tipoOperacion)">{{ op.tipoOperacion }}</span></td>
-          <td style="font-size:0.8rem">{{ op.inmueble?.codigo }}</td>
-          <td>{{ op.cliente?.nombre }}</td>
-          <td>{{ op.asesor?.nombre }}</td>
-          <td style="color:var(--gold);font-weight:600;white-space:nowrap">{{ formatPrice(op.valorAcordado) }}</td>
-          <td>{{ op.comision }}%</td>
-          <td style="font-size:0.8rem">{{ op.fecha }}</td>
-          <td><span class="badge" [class]="estadoBadge(op.estadoProceso)">{{ op.estadoProceso }}</span></td>
-          <td>
-            <div class="table-actions">
-              <button class="btn btn-success btn-sm"
-                *ngIf="op.estadoProceso !== 'CERRADO' && op.estadoProceso !== 'CANCELADO'"
-                (click)="cerrar(op)" title="Cerrar">✓ Cerrar</button>
-              <button class="btn btn-danger btn-sm"
-                *ngIf="op.estadoProceso !== 'CERRADO' && op.estadoProceso !== 'CANCELADO'"
-                (click)="cancelar(op)" title="Cancelar">✕</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ operaciones.length }} operación(es)</div>
+    <div *ngIf="!loading && operaciones.length > 0" class="table-wrapper">
+        <table>
+            <thead>
+            <tr>
+                <th>ID</th><th>Tipo</th><th>Inmueble</th><th>Cliente</th>
+                <th>Asesor</th><th>Valor</th><th>Comisión %</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let op of operaciones">
+                <td><code style="color:var(--gold);font-size:0.8rem">{{ op.idOperacion }}</code></td>
+                <td><span class="badge" [class]="tipoBadge(op.tipoOperacion)">{{ op.tipoOperacion }}</span></td>
+                <td style="font-size:0.8rem">{{ op.inmueble?.codigo }}</td>
+                <td>{{ op.cliente?.nombre }}</td>
+                <td>{{ op.asesor?.nombre }}</td>
+                <td style="color:var(--gold);font-weight:600;white-space:nowrap">{{ formatPrice(op.valorAcordado) }}</td>
+                <td>{{ op.comision }}%</td>
+                <td style="font-size:0.8rem">{{ op.fecha }}</td>
+                <td><span class="badge" [class]="estadoBadge(op.estadoProceso)">{{ op.estadoProceso }}</span></td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn btn-success btn-sm"
+                                *ngIf="op.estadoProceso !== 'CERRADO' && op.estadoProceso !== 'CANCELADO'"
+                                (click)="cerrar(op)" title="Cerrar">✓ Cerrar</button>
+                        <button class="btn btn-danger btn-sm"
+                                *ngIf="op.estadoProceso !== 'CERRADO' && op.estadoProceso !== 'CANCELADO'"
+                                (click)="cancelar(op)" title="Cancelar">✕</button>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div *ngIf="!loading" style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-muted)">{{ operaciones.length }} operación(es)</div>
 </div>
 
 <!-- Modal nueva operación -->
 <div class="modal-overlay" *ngIf="showModal" (click)="showModal=false">
-  <div class="modal modal-lg" (click)="$event.stopPropagation()">
-    <div class="modal-header">
-      <h2>+ Nueva Operación</h2>
-      <button class="modal-close" (click)="showModal=false">✕</button>
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>+ Nueva Operación</h2>
+            <button class="modal-close" (click)="showModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">ID Operación *</label>
+                    <input class="form-control" [(ngModel)]="form.idOperacion"
+                           placeholder="ej. O005"
+                           title="Identificador único de la operación (ej. O005, O006...)">
+                    <span style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem">
+            Formato: O + número (ej. O005)
+          </span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tipo *</label>
+                    <select class="form-control" [(ngModel)]="form.tipoOperacion">
+                        <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Inmueble *</label>
+                    <select class="form-control" [(ngModel)]="form.codigoInmueble">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let i of inmuebles" [value]="i.codigo">{{ i.codigo }} - {{ i.direccion }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Cliente *</label>
+                    <select class="form-control" [(ngModel)]="form.idCliente">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Asesor *</label>
+                    <select class="form-control" [(ngModel)]="form.idAsesor">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha *</label>
+                    <input type="date" class="form-control" [(ngModel)]="form.fecha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Valor Acordado (COP) *</label>
+                    <input type="number" class="form-control" [(ngModel)]="form.valorAcordado">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Comisión (%)</label>
+                    <input type="number" class="form-control" [(ngModel)]="form.comision" placeholder="3">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado del Proceso</label>
+                    <input class="form-control" [(ngModel)]="form.estadoProceso" placeholder="EN_PROCESO">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
+                <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
+                    {{ submitting ? 'Registrando...' : 'Registrar Operación' }}
+                </button>
+            </div>
+        </div>
     </div>
-    <div class="modal-body">
-      <div class="form-grid-2">
-        <div class="form-group">
-          <label class="form-label">ID Operación *</label>
-          <input class="form-control" [(ngModel)]="form.idOperacion" placeholder="OP-001">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Tipo *</label>
-          <select class="form-control" [(ngModel)]="form.tipoOperacion">
-            <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Inmueble *</label>
-          <select class="form-control" [(ngModel)]="form.codigoInmueble">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let i of inmuebles" [value]="i.codigo">{{ i.codigo }} - {{ i.direccion }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Cliente *</label>
-          <select class="form-control" [(ngModel)]="form.idCliente">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Asesor *</label>
-          <select class="form-control" [(ngModel)]="form.idAsesor">
-            <option value="">Seleccionar...</option>
-            <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Fecha *</label>
-          <input type="date" class="form-control" [(ngModel)]="form.fecha">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Valor Acordado (COP) *</label>
-          <input type="number" class="form-control" [(ngModel)]="form.valorAcordado">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Comisión (%)</label>
-          <input type="number" class="form-control" [(ngModel)]="form.comision" placeholder="3">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Estado del Proceso</label>
-          <input class="form-control" [(ngModel)]="form.estadoProceso" placeholder="EN_PROCESO">
-        </div>
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" (click)="showModal=false">Cancelar</button>
-        <button class="btn btn-primary" (click)="guardar()" [disabled]="submitting">
-          {{ submitting ? 'Registrando...' : 'Registrar Operación' }}
-        </button>
-      </div>
-    </div>
-  </div>
 </div>
