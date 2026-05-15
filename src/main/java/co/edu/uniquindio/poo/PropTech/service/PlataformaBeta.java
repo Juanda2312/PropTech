@@ -120,6 +120,17 @@ public class PlataformaBeta {
 
         return operacion;
     }
+    // ================================================================
+    // MÉTODOS PARA RESTAURAR GRAFO DESDE PERSISTENCIA
+    // ================================================================
+
+    public void agregarNodoGrafo(String id) {
+        grafoRelaciones.addVertex(id);
+    }
+
+    public void agregarAristaGrafo(String idCliente, String codigoInmueble) {
+        grafoRelaciones.addEdge(idCliente, codigoInmueble);
+    }
 
     // ================================================================
     // ALERTAS AUTOMÁTICAS — cubre los 6 tipos del PDF
