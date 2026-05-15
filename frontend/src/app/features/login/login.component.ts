@@ -25,31 +25,55 @@ export class LoginComponent {
     constructor(private authService: AuthService, private router: Router) {}
 
     entrar() {
-        this.error = ''; this.exito = '';
+        this.error = '';
+        this.exito = '';
         this.cargando = true;
-        setTimeout(() => {
-            const res = this.authService.login(this.correo, this.id);
-            this.cargando = false;
-            if (!res.ok) { this.error = res.mensaje; return; }
-            if (res.rol === 'ADMIN') this.router.navigate(['/dashboard']);
-            else this.router.navigate(['/cliente']);
-        }, 600);
+
+        // login() devuelve Observable — puede requerir llamada HTTP al backend
+        this.authService.login(this.correo, this.id).subscribe({
+            next: (res) => {
+                this.cargando = false;
+                if (!res.ok) {
+                    this.error = res.mensaje;
+                    return;
+                }
+                if (res.rol === 'ADMIN') {
+                    this.router.navigate(['/dashboard']);
+                } else {
+                    this.router.navigate(['/cliente']);
+                }
+            },
+            error: () => {
+                this.cargando = false;
+                this.error = 'Error inesperado. Intenta de nuevo.';
+            }
+        });
     }
 
     registrarse() {
-        this.error = ''; this.exito = '';
+        this.error = '';
+        this.exito = '';
         this.cargando = true;
+
+        // registrar() sigue siendo síncrono
         setTimeout(() => {
             const res = this.authService.registrar(this.nombre, this.correo, this.id);
             this.cargando = false;
-            if (!res.ok) { this.error = res.mensaje; return; }
+            if (!res.ok) {
+                this.error = res.mensaje;
+                return;
+            }
             this.exito = res.mensaje;
             setTimeout(() => this.router.navigate(['/cliente']), 800);
-        }, 600);
+        }, 400);
     }
 
     cambiarModo(m: 'login' | 'registro') {
-        this.modo = m; this.error = ''; this.exito = '';
-        this.correo = ''; this.id = ''; this.nombre = '';
+        this.modo = m;
+        this.error = '';
+        this.exito = '';
+        this.correo = '';
+        this.id = '';
+        this.nombre = '';
     }
 }

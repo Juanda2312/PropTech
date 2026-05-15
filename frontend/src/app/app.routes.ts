@@ -8,6 +8,12 @@ export const routes: Routes = [
     path: 'login',
     loadComponent: () => import('./features/login/login.component').then(m => m.LoginComponent)
   },
+  // Portal del cliente — solo requiere estar autenticado, NO requiere ser admin
+  {
+    path: 'cliente',
+    loadComponent: () => import('./features/cliente-portal/cliente-portal.component').then(m => m.ClientePortalComponent),
+    canActivate: [authGuard]
+  },
   {
     path: 'dashboard',
     loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent),

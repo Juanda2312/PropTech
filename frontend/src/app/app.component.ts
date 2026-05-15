@@ -22,6 +22,10 @@ export class AppComponent implements OnInit {
   toasts: Toast[] = [];
   mostrarShell = false;
 
+  // Rutas EXACTAS que no muestran el sidebar admin
+  // Usar coincidencia exacta para evitar que /clientes haga match con /cliente
+  private readonly rutasSinShell = ['/login', '/cliente'];
+
   constructor(
       private visitaService: VisitaService,
       private alertaService: AlertaService,
@@ -35,7 +39,12 @@ export class AppComponent implements OnInit {
         filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
       const ruta: string = e.urlAfterRedirects || e.url || '';
-      this.mostrarShell = !ruta.startsWith('/login');
+      // Comparación exacta o con slash final para evitar falsos positivos:
+      // /cliente   → sin shell  ✓
+      // /clientes  → CON shell  ✓  (no confundir con /cliente)
+      this.mostrarShell = !this.rutasSinShell.some(r =>
+          ruta === r || ruta.startsWith(r + '/')  || ruta.startsWith(r + '?')
+      );
     });
 
     this.cargarContadores();
