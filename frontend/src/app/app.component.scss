@@ -155,3 +155,20 @@
   }
   .main-content { padding: 1rem; }
 }
+/* Logout en sidebar */
+.nav-logout {
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-secondary);
+  &:hover {
+    background: rgba(244,63,94,0.08);
+    color: var(--accent-rose);
+  }
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}

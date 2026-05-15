@@ -1,0 +1,160 @@
+<!-- src/app/features/cliente-portal/cliente-portal.component.html -->
+<div class="portal-shell">
+
+    <!-- Topbar -->
+    <header class="portal-topbar">
+        <div class="topbar-logo">
+            <span class="logo-hex">⬡</span>
+            <div>
+                <span class="logo-name">PropTech</span>
+                <span class="logo-sub">Portal Cliente</span>
+            </div>
+        </div>
+        <div class="topbar-user">
+            <div class="user-avatar">{{ usuario?.nombre?.charAt(0) }}</div>
+            <div class="user-info">
+                <span class="user-name">{{ usuario?.nombre }}</span>
+                <span class="user-correo">{{ usuario?.correo }}</span>
+            </div>
+            <button class="btn-logout" (click)="cerrarSesion()" title="Cerrar sesión">⎋ Salir</button>
+        </div>
+    </header>
+
+    <!-- Nav tabs -->
+    <nav class="portal-nav">
+        <button class="pnav-btn" [class.active]="seccion==='inmuebles'" (click)="seccion='inmuebles'">
+            🏠 Consultar Inmuebles
+        </button>
+        <button class="pnav-btn" [class.active]="seccion==='visitas'" (click)="seccion='visitas'; cargarHistorialYFavoritos()">
+            📅 Mis Visitas
+        </button>
+        <button class="pnav-btn" [class.active]="seccion==='favoritos'" (click)="seccion='favoritos'; cargarHistorialYFavoritos()">
+            ⭐ Mis Favoritos
+        </button>
+        <button class="pnav-btn" [class.active]="seccion==='historial'" (click)="seccion='historial'; cargarHistorialYFavoritos()">
+            📋 Historial
+        </button>
+    </nav>
+
+    <!-- Contenido -->
+    <main class="portal-main">
+
+        <!-- INMUEBLES -->
+        <div *ngIf="seccion==='inmuebles'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header">
+                <h2>Inmuebles disponibles</h2>
+                <input class="search-input" [(ngModel)]="filtroTexto"
+                       placeholder="Buscar por ciudad, barrio, tipo...">
+            </div>
+
+            <div *ngIf="loading" class="loading"><div class="spinner"></div></div>
+
+            <div *ngIf="!loading && inmueblesFiltrados.length === 0" class="empty-state">
+                <span class="icon">🏠</span>
+                <p>No hay inmuebles disponibles con ese criterio</p>
+            </div>
+
+            <div class="inmuebles-grid" *ngIf="!loading && inmueblesFiltrados.length > 0">
+                <div *ngFor="let inm of inmueblesFiltrados" class="inm-card card">
+                    <div class="inm-card-top">
+                        <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
+                        <span class="badge" [class]="inm.finalidad==='VENTA'?'badge-teal':'badge-purple'">{{ inm.finalidad }}</span>
+                    </div>
+                    <h3 class="inm-dir">{{ inm.direccion }}</h3>
+                    <p class="inm-ubicacion text-muted">{{ inm.ciudad }} · {{ inm.barrio }}</p>
+                    <div class="inm-stats">
+                        <span>🛏 {{ inm.habitaciones }} hab.</span>
+                        <span>🚿 {{ inm.banos }} baños</span>
+                        <span>📐 {{ inm.area }} m²</span>
+                    </div>
+                    <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
+                    <button class="btn-fav" (click)="marcarFavorito(inm)" title="Agregar a favoritos">
+                        ⭐ Guardar favorito
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VISITAS -->
+        <div *ngIf="seccion==='visitas'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header"><h2>Mis visitas agendadas</h2></div>
+
+            <div *ngIf="visitasCliente.length === 0" class="empty-state">
+                <span class="icon">📅</span>
+                <p *ngIf="vinculado">No tienes visitas agendadas aún. Contacta a un asesor.</p>
+                <div *ngIf="!vinculado" class="aviso-vinculo">
+                    <span class="aviso-icon">ℹ️</span>
+                    <div>
+                        <strong>Cuenta no vinculada al sistema</strong>
+                        <p>Tu ID de cliente en el sistema es: <code>CLI-{{ usuario?.id }}</code></p>
+                        <p>Dile a un asesor que te busque con ese ID para agendarte visitas y ver tu historial.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-wrapper" *ngIf="visitasCliente.length > 0">
+                <table>
+                    <thead>
+                    <tr><th>Inmueble</th><th>Fecha</th><th>Hora</th><th>Asesor</th><th>Estado</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr *ngFor="let v of visitasCliente">
+                        <td style="font-size:0.85rem">{{ v.inmueble?.direccion }}</td>
+                        <td>{{ v.fecha }}</td>
+                        <td>{{ v.hora }}</td>
+                        <td>{{ v.asesor?.nombre }}</td>
+                        <td><span class="badge" [class]="estadoBadge(v.estado)">{{ v.estado }}</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- FAVORITOS -->
+        <div *ngIf="seccion==='favoritos'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header"><h2>Mis inmuebles favoritos</h2></div>
+
+            <div *ngIf="favoritos.length === 0" class="empty-state">
+                <span class="icon">⭐</span>
+                <p>No has guardado favoritos aún. Explora los inmuebles disponibles.</p>
+            </div>
+
+            <div class="inmuebles-grid" *ngIf="favoritos.length > 0">
+                <div *ngFor="let inm of favoritos" class="inm-card card">
+                    <div class="inm-card-top">
+                        <span class="badge badge-gold">⭐</span>
+                        <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
+                    </div>
+                    <h3 class="inm-dir">{{ inm.direccion }}</h3>
+                    <p class="inm-ubicacion text-muted">{{ inm.ciudad }} · {{ inm.barrio }}</p>
+                    <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HISTORIAL -->
+        <div *ngIf="seccion==='historial'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header"><h2>Historial de interacciones</h2></div>
+
+            <div *ngIf="historial.length === 0" class="empty-state">
+                <span class="icon">📋</span>
+                <p>Sin historial de interacciones aún</p>
+            </div>
+
+            <div class="table-wrapper" *ngIf="historial.length > 0">
+                <table>
+                    <thead><tr><th>Inmueble</th><th>Ciudad</th><th>Tipo</th><th>Precio</th></tr></thead>
+                    <tbody>
+                    <tr *ngFor="let inm of historial">
+                        <td>{{ inm.direccion }}</td>
+                        <td>{{ inm.ciudad }}</td>
+                        <td><span class="badge badge-blue">{{ inm.tipoInmueble }}</span></td>
+                        <td style="color:var(--gold);font-weight:600">{{ formatPrice(inm.precio) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+</div>

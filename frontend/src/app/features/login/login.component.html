@@ -1,0 +1,97 @@
+<!-- src/app/features/login/login.component.html -->
+<div class="login-wrapper">
+
+    <div class="login-bg">
+        <div class="bg-orb orb-1"></div>
+        <div class="bg-orb orb-2"></div>
+        <div class="bg-orb orb-3"></div>
+    </div>
+
+    <div class="login-card">
+
+        <div class="login-logo">
+            <span class="logo-hex">⬡</span>
+            <div>
+                <span class="logo-name">PropTech</span>
+                <span class="logo-sub">Plataforma Beta</span>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="login-tabs">
+            <button class="ltab" [class.active]="modo==='login'" (click)="cambiarModo('login')">
+                Iniciar sesión
+            </button>
+            <button class="ltab" [class.active]="modo==='registro'" (click)="cambiarModo('registro')">
+                Registrarse
+            </button>
+        </div>
+
+        <!-- Formulario Login -->
+        <div *ngIf="modo==='login'" class="login-form" style="animation:fadeIn 250ms ease">
+
+            <div class="field-group">
+                <label class="field-label">Correo electrónico</label>
+                <input class="field-input" type="email" [(ngModel)]="correo"
+                       placeholder="ejemplo@correo.com" (keyup.enter)="entrar()">
+            </div>
+
+            <div class="field-group">
+                <label class="field-label">Número de identificación</label>
+                <input class="field-input" type="text" [(ngModel)]="id"
+                       placeholder="10 dígitos" maxlength="10" (keyup.enter)="entrar()">
+                <span class="field-hint">Se usa como contraseña — exactamente 10 dígitos</span>
+            </div>
+
+            <div class="login-error" *ngIf="error">⚠ {{ error }}</div>
+            <div class="login-exito" *ngIf="exito">✓ {{ exito }}</div>
+
+            <button class="btn-login" (click)="entrar()" [disabled]="cargando">
+                <span *ngIf="!cargando">Ingresar</span>
+                <span *ngIf="cargando" class="btn-spinner"></span>
+            </button>
+
+            <p class="login-link">
+                ¿No tienes cuenta?
+                <a (click)="cambiarModo('registro')">Regístrate aquí</a>
+            </p>
+        </div>
+
+        <!-- Formulario Registro -->
+        <div *ngIf="modo==='registro'" class="login-form" style="animation:fadeIn 250ms ease">
+
+            <div class="field-group">
+                <label class="field-label">Nombre completo</label>
+                <input class="field-input" type="text" [(ngModel)]="nombre"
+                       placeholder="Tu nombre" (keyup.enter)="registrarse()">
+            </div>
+
+            <div class="field-group">
+                <label class="field-label">Correo electrónico</label>
+                <input class="field-input" type="email" [(ngModel)]="correo"
+                       placeholder="ejemplo@correo.com" (keyup.enter)="registrarse()">
+            </div>
+
+            <div class="field-group">
+                <label class="field-label">Número de identificación</label>
+                <input class="field-input" type="text" [(ngModel)]="id"
+                       placeholder="10 dígitos" maxlength="10" (keyup.enter)="registrarse()">
+                <span class="field-hint">Este número será tu contraseña — exactamente 10 dígitos</span>
+            </div>
+
+            <div class="login-error" *ngIf="error">⚠ {{ error }}</div>
+            <div class="login-exito" *ngIf="exito">✓ {{ exito }}</div>
+
+            <button class="btn-login" (click)="registrarse()" [disabled]="cargando">
+                <span *ngIf="!cargando">Crear cuenta</span>
+                <span *ngIf="cargando" class="btn-spinner"></span>
+            </button>
+
+            <p class="login-link">
+                ¿Ya tienes cuenta?
+                <a (click)="cambiarModo('login')">Inicia sesión</a>
+            </p>
+        </div>
+
+    </div>
+</div>
