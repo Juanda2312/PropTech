@@ -103,6 +103,28 @@ export class ClientePortalComponent implements OnInit {
         });
     }
 
+    esFavorito(inm: Inmueble): boolean {
+        return this.favoritos.some(f => f.codigo === inm.codigo);
+    }
+
+    toggleFavorito(inm: Inmueble) {
+        if (!this.clienteBackendId) {
+            this.toast.warn('Tu cuenta aún no está registrada. Contacta a un asesor.');
+            return;
+        }
+        if (this.esFavorito(inm)) {
+            this.clienteService.eliminarFavorito(this.clienteBackendId, inm.codigo).subscribe({
+                next: () => { this.toast.success('Eliminado de favoritos'); this.cargarHistorialYFavoritos(); },
+                error: (e: any) => this.toast.error(e.message)
+            });
+        } else {
+            this.clienteService.marcarFavorito(this.clienteBackendId, inm.codigo).subscribe({
+                next: () => { this.toast.success('¡Agregado a favoritos!'); this.cargarHistorialYFavoritos(); },
+                error: (e: any) => this.toast.error(e.message)
+            });
+        }
+    }
+
     marcarFavorito(inm: Inmueble) {
         if (!this.clienteBackendId) {
             this.toast.warn('Tu cuenta aún no está registrada en el sistema. Contacta a un asesor.');

@@ -114,3 +114,9 @@
     p { font-size: 0.82rem; color: var(--text-secondary); margin: 0.2rem 0; }
     code { color: var(--gold); background: var(--gold-dim); padding: 0.1rem 0.4rem; border-radius: 4px; }
 }
+
+.btn-fav.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: var(--gold-dim);
+}

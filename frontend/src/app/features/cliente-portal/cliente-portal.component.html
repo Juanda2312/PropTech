@@ -68,8 +68,10 @@
                         <span>📐 {{ inm.area }} m²</span>
                     </div>
                     <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
-                    <button class="btn-fav" (click)="marcarFavorito(inm)" title="Agregar a favoritos">
-                        ⭐ Guardar favorito
+                    <button class="btn-fav"
+                            [class.active]="esFavorito(inm)"
+                            (click)="toggleFavorito(inm)">
+                        {{ esFavorito(inm) ? '⭐ Quitar favorito' : '☆ Guardar favorito' }}
                     </button>
                 </div>
             </div>

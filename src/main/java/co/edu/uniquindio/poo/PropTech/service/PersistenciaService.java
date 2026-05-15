@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -64,6 +65,14 @@ public class PersistenciaService {
     @PreDestroy
     public void guardarTodo() {
         System.out.println("💾 [Persistencia] Guardando datos...");
+
+        // Sincronizar favoritos antes de guardar
+        for (Cliente c : clienteRepository.findAll()) {
+            java.util.List<String> codigos = new java.util.ArrayList<>();
+            c.getInmueblesGuardados().forEach(i -> codigos.add(i.getCodigo()));
+            c.setCodigosFavoritos(codigos);
+        }
+
         guardar(ASESORES_FILE,    asesorRepository.findAll());
         guardar(CLIENTES_FILE,    clienteRepository.findAll());
         guardar(INMUEBLES_FILE,   inmuebleRepository.findAll());

@@ -40,4 +40,8 @@ export class ClienteService {
   obtenerHistorial(id: string): Observable<Inmueble[]> {
     return this.http.get<Inmueble[]>(`${this.base}/clientes/${id}/historial`);
   }
+
+  eliminarFavorito(id: string, codigoInmueble: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/clientes/${id}/favoritos/${codigoInmueble}`);
+  }
 }

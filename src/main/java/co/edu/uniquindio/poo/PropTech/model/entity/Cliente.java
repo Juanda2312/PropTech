@@ -5,9 +5,14 @@ import co.edu.uniquindio.poo.PropTech.model.enums.TipoInmueble;
 import co.edu.uniquindio.poo.PropTech.model.enums.Zona;
 import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
+
 @com.fasterxml.jackson.annotation.JsonIgnoreProperties(ignoreUnknown = true)
 @Getter
 @Setter
@@ -35,6 +40,9 @@ public class Cliente extends Persona {
     private SimpleLinkedList<Inmueble> inmueblesNegociados   = new SimpleLinkedList<>();
     @JsonIgnore
     private SimpleLinkedList<Recomendacion> listaRecomendaciones = new SimpleLinkedList<>();
+
+    // Solo para serialización JSON — no usar directamente
+    private List<String> codigosFavoritos = new ArrayList<>();
 
     public Cliente(String id, String nombre, String correo, String telefono,
                    String tipoCliente, double presupuesto, Zona[] zonasInteres,

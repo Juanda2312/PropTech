@@ -8,6 +8,7 @@ import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
 import co.edu.uniquindio.poo.PropTech.model.entity.Recomendacion;
 import co.edu.uniquindio.poo.PropTech.repository.ClienteRepository;
+import co.edu.uniquindio.poo.PropTech.structures.SimpleLinkedList;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -73,7 +74,28 @@ public class ClienteService {
     }
 
     public void marcarFavorito(String idCliente, Inmueble inmueble) {
-        buscarPorId(idCliente).getInmueblesGuardados().addLast(inmueble);
+        Cliente cliente = buscarPorId(idCliente);
+        // Verificar duplicado
+        for (Inmueble fav : cliente.getInmueblesGuardados()) {
+            if (fav.getCodigo().equals(inmueble.getCodigo())) {
+                throw new ReglaNegocioException(
+                        "El inmueble " + inmueble.getCodigo() + " ya está en favoritos.");
+            }
+        }
+        cliente.getInmueblesGuardados().addLast(inmueble);
+    }
+
+    public void eliminarFavorito(String idCliente, String codigoInmueble) {
+        Cliente cliente = buscarPorId(idCliente);
+        SimpleLinkedList<Inmueble> lista = cliente.getInmueblesGuardados();
+        int index = -1;
+        int i = 0;
+        for (Inmueble fav : lista) {
+            if (fav.getCodigo().equals(codigoInmueble)) { index = i; break; }
+            i++;
+        }
+        if (index == -1) throw new EntidadNoEncontradaException("Favorito", codigoInmueble);
+        lista.remove(index);
     }
 
     public void registrarInmuebleNegociado(String idCliente, Inmueble inmueble) {

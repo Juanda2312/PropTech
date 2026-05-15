@@ -65,12 +65,6 @@ public class DataLoader implements CommandLineRunner {
         for (Asesor a : persistencia.cargarAsesores()) {
             try { asesorRepository.save(a); } catch (Exception ignored) {}
         }
-        for (Cliente c : persistencia.cargarClientes()) {
-            try {
-                clienteRepository.save(c);
-                plataforma.agregarNodoGrafo(c.getId());
-            } catch (Exception ignored) {}
-        }
         for (Inmueble i : persistencia.cargarInmuebles()) {
             try {
                 if (i.getAsesor() != null) {
@@ -80,6 +74,20 @@ public class DataLoader implements CommandLineRunner {
                 }
                 inmuebleRepository.save(i);
                 plataforma.agregarNodoGrafo(i.getCodigo());
+            } catch (Exception ignored) {}
+        }
+        for (Cliente c : persistencia.cargarClientes()) {
+            try {
+                clienteRepository.save(c);
+                plataforma.agregarNodoGrafo(c.getId());
+                // Restaurar favoritos
+                if (c.getCodigosFavoritos() != null) {
+                    for (String cod : c.getCodigosFavoritos()) {
+                        inmuebleRepository.findById(cod).ifPresent(
+                                inm -> c.getInmueblesGuardados().addLast(inm)
+                        );
+                    }
+                }
             } catch (Exception ignored) {}
         }
         for (Visita v : persistencia.cargarVisitas()) {

@@ -125,4 +125,11 @@ public class ClienteController {
         cliente.getInmueblesConsultados().forEach(historial::add);
         return ResponseEntity.ok(historial);
     }
+
+    @DeleteMapping("/{id}/favoritos/{codigoInmueble}")
+    public ResponseEntity<Void> eliminarFavorito(@PathVariable String id,
+                                                 @PathVariable String codigoInmueble) {
+        clienteService.eliminarFavorito(id, codigoInmueble);
+        return ResponseEntity.noContent().build();
+    }
 }

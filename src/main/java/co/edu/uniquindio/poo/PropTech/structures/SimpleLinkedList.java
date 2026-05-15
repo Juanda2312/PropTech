@@ -18,7 +18,8 @@ public class SimpleLinkedList<T extends Comparable<T>> implements Iterable<T>{
         size = 0;
     }
 
-    public T getfirst(){
+    public T getfirst() {
+        if (first == null) return null;
         return first.getData();
     }
 
