@@ -35,7 +35,7 @@ export class AppComponent implements OnInit {
         filter(e => e instanceof NavigationEnd)
     ).subscribe((e: any) => {
       const ruta: string = e.urlAfterRedirects || e.url || '';
-      this.mostrarShell = !ruta.startsWith('/login') && !ruta.startsWith('/cliente');
+      this.mostrarShell = !ruta.startsWith('/login');
     });
 
     this.cargarContadores();
