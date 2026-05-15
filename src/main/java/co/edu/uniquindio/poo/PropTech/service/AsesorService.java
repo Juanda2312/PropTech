@@ -2,6 +2,7 @@ package co.edu.uniquindio.poo.PropTech.service;
 
 import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
 import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.dto.AsesorDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Asesor;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
@@ -22,6 +23,7 @@ public class AsesorService {
     }
 
     public Asesor registrar(AsesorDTO dto) {
+        validarId(dto.getId());
         if (asesorRepository.existsById(dto.getId())) {
             throw new EntidadDuplicadaException("Asesor", dto.getId());
         }
@@ -50,7 +52,6 @@ public class AsesorService {
         buscarPorId(idAsesor).getVisitasAgendadas().addLast(visita);
     }
 
-    //guardamos el número de cierres ANTES de agregar el nuevo
     public void registrarCierre(String idAsesor, Operacion operacion) {
         Asesor asesor = buscarPorId(idAsesor);
         int cierresAnteriores = asesor.getCierresRealizados().getSize();
@@ -70,5 +71,19 @@ public class AsesorService {
 
     public List<Asesor> obtenerRankingPorCierres() {
         return asesorRepository.findAllOrdenadosPorCierres();
+    }
+
+    // ----------------------------------------------------------------
+    // Validación de ID (cédula colombiana: exactamente 10 dígitos)
+    // ----------------------------------------------------------------
+
+    private void validarId(String id) {
+        if (id == null || id.isBlank()) {
+            throw new ReglaNegocioException("El ID del asesor no puede estar vacío.");
+        }
+        if (!id.matches("\\d{10}")) {
+            throw new ReglaNegocioException(
+                    "El ID del asesor debe ser una cédula de exactamente 10 dígitos numéricos. Valor recibido: '" + id + "'.");
+        }
     }
 }

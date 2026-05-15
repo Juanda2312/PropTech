@@ -2,6 +2,7 @@ package co.edu.uniquindio.poo.PropTech.service;
 
 import co.edu.uniquindio.poo.PropTech.exception.EntidadDuplicadaException;
 import co.edu.uniquindio.poo.PropTech.exception.EntidadNoEncontradaException;
+import co.edu.uniquindio.poo.PropTech.exception.ReglaNegocioException;
 import co.edu.uniquindio.poo.PropTech.model.dto.ClienteDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
@@ -25,6 +26,7 @@ public class ClienteService {
     // ----------------------------------------------------------------
 
     public Cliente registrar(ClienteDTO dto) {
+        validarId(dto.getId());
         if (clienteRepository.existsById(dto.getId())) {
             throw new EntidadDuplicadaException("Cliente", dto.getId());
         }
@@ -96,6 +98,20 @@ public class ClienteService {
 
     public List<Cliente> obtenerPorPresupuestoMaximo(double max) {
         return clienteRepository.findByPresupuestoMaximo(max);
+    }
+
+    // ----------------------------------------------------------------
+    // Validación de ID (cédula colombiana: exactamente 10 dígitos)
+    // ----------------------------------------------------------------
+
+    private void validarId(String id) {
+        if (id == null || id.isBlank()) {
+            throw new ReglaNegocioException("El ID del cliente no puede estar vacío.");
+        }
+        if (!id.matches("\\d{10}")) {
+            throw new ReglaNegocioException(
+                    "El ID del cliente debe ser una cédula de exactamente 10 dígitos numéricos. Valor recibido: '" + id + "'.");
+        }
     }
 
     // ----------------------------------------------------------------
