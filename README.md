@@ -10,6 +10,9 @@
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Estructuras de datos utilizadas](#estructuras-de-datos-utilizadas)
 - [Funcionalidades principales](#funcionalidades-principales)
+- [Autenticación y roles](#autenticación-y-roles)
+- [Portal del cliente](#portal-del-cliente)
+- [Persistencia de datos](#persistencia-de-datos)
 - [Tecnologías](#tecnologías)
 - [Requisitos previos](#requisitos-previos)
 - [Instalación y ejecución](#instalación-y-ejecución)
@@ -17,6 +20,7 @@
 - [Diagrama de entidades](#diagrama-de-entidades)
 - [Datos de prueba](#datos-de-prueba)
 - [Estructura del proyecto](#estructura-del-proyecto)
+- [Manejo de errores](#manejo-de-errores)
 
 ---
 
@@ -36,12 +40,14 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 ┌──────────────────────────────────────┐
 │         Frontend (Angular 17)        │
 │   Dashboard · Módulos · Reportes     │
+│   Portal Cliente · Login             │
 └────────────────┬─────────────────────┘
                  │ HTTP / REST (proxy /api → :8080)
 ┌────────────────▼─────────────────────┐
 │         Backend (Spring Boot 3)      │
 │  Controllers → Services → Repository │
 │       Estructuras de datos propias   │
+│       Persistencia JSON en /data/    │
 └──────────────────────────────────────┘
 ```
 
@@ -52,11 +58,14 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 - **Repositories:** encapsulan las estructuras de datos (HashTable, AVLTree, Stack, Queue, PriorityQueue).
 - **Structures:** implementaciones propias de cada estructura de datos.
 - **Exceptions:** jerarquía de excepciones de dominio con manejo global vía `GlobalExceptionHandler`.
+- **PersistenciaService:** guarda y restaura el estado completo en archivos JSON dentro de `/data/` al apagar y encender el servidor.
 
 ### Frontend
 
 - Aplicación Angular 17 con componentes standalone.
 - Módulos: Dashboard, Inmuebles, Clientes, Asesores, Visitas, Operaciones, Alertas, Eventos Inusuales, Recomendaciones, Análisis de Grafo.
+- Portal del cliente con secciones propias: inmuebles disponibles, favoritos, historial, interacciones y recomendaciones.
+- Sistema de autenticación con roles: ADMIN y CLIENTE.
 - Comunicación con el backend mediante servicios HTTP con proxy de desarrollo.
 
 ---
@@ -67,13 +76,13 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 
 | Estructura | Clase | Uso en el sistema |
 |---|---|---|
-| **Lista enlazada simple** | `SimpleLinkedList<T>` | Historial de visitas, inmuebles consultados, favoritos, inmuebles asignados a asesores, contratos y operaciones |
+| **Lista enlazada simple** | `SimpleLinkedList<T>` | Historial de visitas, inmuebles consultados, favoritos, inmuebles asignados a asesores, contratos, operaciones, historial de interacciones del cliente |
 | **Pila (Stack)** | `Stack<T>` | Deshacer cambios recientes en publicaciones de inmuebles; historial de snapshots para revertir modificaciones |
 | **Cola FIFO (Queue)** | `Queue<T>` | Solicitudes de visitas pendientes por procesar; cola de alertas pendientes de revisión |
 | **Cola de prioridad** | `PriorityQueue<T>` | Visitas urgentes o VIP; alertas con mayor nivel de atención (heap máximo, extracción en O(log n)) |
 | **Tabla hash** | `HashTable<K,V>` | Búsqueda O(1) de clientes por ID, inmuebles por código, asesores, alertas y eventos; conteo de frecuencias |
 | **Árbol AVL** | `AVLTree<T>` | Ordenamiento de inmuebles por precio; clasificación de clientes por presupuesto; ranking de asesores por cierres |
-| **Grafo** | `Graph<T>` | Relaciones entre clientes e inmuebles visitados; análisis de conexiones mediante BFS |
+| **Grafo** | `Graph<T>` | Relaciones entre clientes e inmuebles visitados; análisis de conexiones mediante BFS y DFS |
 
 ### Justificación técnica destacada
 
@@ -82,6 +91,7 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 - **Stack:** permite deshacer el último cambio sobre cualquier inmueble restaurando el snapshot previo.
 - **PriorityQueue (heap máximo):** las visitas VIP y las alertas críticas se extraen siempre primero, independientemente del orden de llegada.
 - **Graph (no dirigido):** representa la relación bidireccional cliente↔inmueble generada con cada visita; el BFS permite descubrir todos los nodos conectados desde cualquier punto.
+- **SimpleLinkedList:** permite inserción en O(1) al frente (`addFirst`) para mantener el historial de interacciones en orden cronológico inverso (más reciente primero).
 
 ---
 
@@ -95,13 +105,15 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 - Deshacer el último cambio sobre un inmueble (Stack).
 
 ### Gestión de clientes
-- CRUD completo con validación de duplicados.
+- CRUD completo con validación de duplicados y formato de cédula (10 dígitos).
 - Historial de inmuebles consultados, visitados, favoritos, descartados y negociados.
+- Historial unificado de interacciones (visitas agendadas, favoritos guardados, intenciones de compra/renta, compras/arriendos realizados, inmuebles consultados/descartados).
 - Ordenamiento por presupuesto (AVL).
 - Recomendaciones personalizadas por puntaje de coincidencia.
 
 ### Gestión de asesores
 - Registro y actualización de asesores con zona de especialidad.
+- Validación de ID como cédula colombiana (exactamente 10 dígitos).
 - Cálculo de carga actual (visitas + inmuebles asignados).
 - Ranking por número de cierres realizados (AVL descendente).
 
@@ -114,7 +126,10 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 - Inmuebles sin visitas (inactivos).
 - Visitas pendientes por más de 3 días sin confirmar.
 - Clientes activos sin ninguna interacción registrada.
-- Alertas gestionadas con cola FIFO y cola de prioridad.
+- Contratos próximos a vencer (dentro de 30 días), con nivel según días restantes (≤7: CRÍTICO, ≤15: ALTO, ≤30: MEDIO).
+- Inmuebles con alta demanda y sin cierre (> 10 visitas).
+- Operaciones activas por más de 60 días sin cerrarse.
+- Alertas gestionadas con cola FIFO y cola de prioridad (extrae primero la más crítica).
 
 ### Detección de comportamientos inusuales
 - Clientes con exceso de visitas sin cierre (> 10).
@@ -124,21 +139,107 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 - Concentración inusual de visitas en una misma zona (> 15).
 
 ### Recomendaciones inteligentes
-Puntaje calculado por tres criterios (máx. 100 pts):
+Puntaje calculado con seis criterios (máx. 100 pts):
 - Precio dentro del presupuesto del cliente: **+40 pts**
-- Tipo de inmueble coincide con el deseado: **+30 pts**
-- Habitaciones ≥ mínimo requerido: **+30 pts**
+- Tipo de inmueble coincide con el deseado: **+20 pts**
+- Habitaciones ≥ mínimo requerido: **+15 pts**
+- Zona de interés del cliente: **+15 pts**
+- Barrio consultado anteriormente: **+5 pts**
+- Visitó inmuebles similares en el mismo barrio: **+5 pts**
 
 ### Análisis de grafo
 - Obtener clientes conectados a un inmueble (vecinos del grafo).
 - Obtener inmuebles visitados por un cliente (vecinos del grafo).
 - Recorrido BFS desde cualquier nodo (cliente o inmueble).
+- Clientes con perfil similar (visitaron inmuebles en común — vecinos de vecinos).
 - Ranking de zonas por actividad (conteo de visitas por barrio).
 
 ### Operaciones de negocio
 - Registro de arriendo, venta, renovación y cancelación.
+- Fecha de vencimiento de contrato para arriendos y renovaciones.
 - Cierre y cancelación de operaciones con validación de estado.
 - Cálculo de comisiones por asesor.
+
+### Reportes avanzados
+- Ranking de asesores por cierres (AVL descendente).
+- Ranking de zonas por actividad comercial.
+- Clientes con alta probabilidad de cierre (estado ACTIVO + favoritos + ≥2 visitas + inmueble acorde al presupuesto).
+- Simulación de crecimiento de demanda por sector (últimos 30 días vs. 30 días anteriores, con tendencia CRECIENDO / ESTABLE / DECAYENDO).
+
+---
+
+## Autenticación y roles
+
+El sistema cuenta con dos roles diferenciados:
+
+### Administrador (ADMIN)
+- Credenciales hardcodeadas en `AuthService`.
+- Cuentas predefinidas:
+  - `jose@gmail.com` / `1111100000`
+  - `tapiero@gmail.com` / `0000011111`
+- Acceso completo al panel de administración con todos los módulos.
+
+### Cliente (CLIENTE)
+- Puede registrarse desde la pantalla de login (crea cuenta en frontend y en backend simultáneamente).
+- También puede iniciar sesión con las credenciales de los clientes cargados por el `DataLoader` (correo + ID de cédula).
+- Al autenticarse, el sistema vincula automáticamente su cuenta frontend con su registro en el backend buscando por correo.
+- Redirige al Portal del Cliente (`/cliente`).
+
+El sistema usa `sessionStorage` para mantener la sesión activa y `localStorage` para cachear clientes registrados en el frontend.
+
+---
+
+## Portal del cliente
+
+Interfaz dedicada accesible en `/cliente` para usuarios con rol CLIENTE. Cuenta con cinco secciones:
+
+### Inmuebles disponibles
+- Listado de todos los inmuebles con disponibilidad activa.
+- Búsqueda en tiempo real por ciudad, barrio, tipo o dirección.
+- Al pasar el cursor (hover) sobre una tarjeta se registra automáticamente la consulta en el historial del cliente (una sola vez por sesión para evitar duplicados).
+- Acciones por tarjeta: guardar/quitar favorito, agendar visita, declarar intención de compra o renta.
+
+### Favoritos
+- Lista de inmuebles guardados por el cliente.
+- Acciones directas: agendar visita, declarar intención.
+
+### Consultados
+- Historial de inmuebles con los que el cliente interactuó.
+
+### Mis Interacciones
+- Historial unificado de todas las acciones del cliente ordenadas de más reciente a más antigua.
+- Filtrable por tipo: visitas agendadas, favoritos, intenciones de compra/renta, compras/arriendos realizados, inmuebles consultados/descartados.
+- Formulario para agendar visita directamente desde esta sección.
+- Formulario para declarar intención de compra o renta.
+
+### Recomendaciones
+- Inmuebles recomendados personalizados con puntaje de coincidencia (0-100).
+- Indicador visual circular por cada inmueble con color según nivel de coincidencia.
+- Razones explícitas del porqué se recomienda cada inmueble.
+- Acciones directas: guardar favorito, agendar visita, declarar intención.
+
+---
+
+## Persistencia de datos
+
+El sistema persiste automáticamente todos los datos en archivos JSON dentro del directorio `/data/` al apagar el servidor (`@PreDestroy`), y los restaura al volver a arrancar.
+
+Archivos generados:
+```
+data/
+├── asesores.json
+├── clientes.json
+├── inmuebles.json
+├── visitas.json
+├── operaciones.json
+├── alertas.json
+├── eventos.json
+└── interacciones.json
+```
+
+El archivo `interacciones.json` usa un formato propio (`InteraccionPersistida`) que almacena el ID del cliente y el código del inmueble en lugar de los objetos completos, evitando referencias circulares y problemas con `@JsonIgnore`.
+
+Al restaurar, el `DataLoader` reconstruye el grafo de relaciones cliente↔inmueble y las listas específicas (`inmueblesConsultados`, `propiedadesVisitadas`, `inmueblesGuardados`, etc.) a partir del tipo de cada interacción. Los favoritos también se restauran desde el campo `codigosFavoritos` del cliente.
 
 ---
 
@@ -192,8 +293,11 @@ cd <nombre-del-proyecto>
 ./mvnw spring-boot:run
 ```
 
-El servidor arranca en `http://localhost:8080`.  
-Al iniciar, el `DataLoader` carga automáticamente **5 asesores, 10 clientes, 20 inmuebles, 20 visitas y 8 operaciones** de prueba.
+El servidor arranca en `http://localhost:8080`.
+
+**Primera ejecución:** el `DataLoader` carga automáticamente datos de prueba (5 asesores, 10 clientes, 20 inmuebles, 20 visitas y 8 operaciones).
+
+**Ejecuciones siguientes:** el sistema detecta los archivos en `/data/` y restaura el estado guardado automáticamente.
 
 La documentación Swagger UI estará disponible en:
 ```
@@ -208,8 +312,30 @@ npm install
 npm start
 ```
 
-La aplicación Angular quedará disponible en `http://localhost:4200`.  
+La aplicación Angular quedará disponible en `http://localhost:4200`.
 El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
+
+### 4. Acceso al sistema
+
+| Rol | URL | Credenciales de prueba |
+|---|---|---|
+| Administrador | `http://localhost:4200/dashboard` | `jose@gmail.com` / `1111100000` |
+| Cliente | `http://localhost:4200/cliente` | Usar correo + ID de cualquier cliente del DataLoader, o registrarse |
+
+**Clientes de prueba disponibles (DataLoader):**
+
+| Correo | ID (cédula) |
+|---|---|
+| juan@gmail.com | 1094567890 |
+| maria@gmail.com | 1006234567 |
+| carlos@gmail.com | 1093123456 |
+| ana@hotmail.com | 1005678901 |
+| pedro@gmail.com | 1094890123 |
+| sofia@gmail.com | 1007345678 |
+| tomas@gmail.com | 1095012345 |
+| vale@gmail.com | 1008901234 |
+| ricardo@gmail.com | 1090123456 |
+| dani@gmail.com | 1001234560 |
 
 ---
 
@@ -241,9 +367,14 @@ El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 | `PUT` | `/api/clientes/{id}` | Actualizar |
 | `DELETE` | `/api/clientes/{id}` | Eliminar |
 | `POST` | `/api/clientes/{id}/favoritos/{codigo}` | Marcar favorito |
+| `DELETE` | `/api/clientes/{id}/favoritos/{codigo}` | Quitar favorito |
 | `POST` | `/api/clientes/{id}/descartados/{codigo}` | Registrar descarte |
 | `GET` | `/api/clientes/{id}/favoritos` | Obtener favoritos |
-| `GET` | `/api/clientes/{id}/historial` | Obtener historial de consultas |
+| `GET` | `/api/clientes/{id}/historial` | Obtener historial de consultas (sin duplicados) |
+| `GET` | `/api/clientes/{id}/interacciones` | Historial unificado (`?tipo=VISITA_AGENDADA`) |
+| `POST` | `/api/clientes/{id}/intencion` | Registrar intención de compra o renta |
+| `POST` | `/api/clientes/{id}/visitas` | Agendar visita desde el portal cliente |
+| `POST` | `/api/clientes/{id}/consulta/{codigo}` | Registrar consulta de inmueble |
 
 ### Asesores — `/api/asesores`
 
@@ -287,7 +418,7 @@ El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 | `POST` | `/api/plataforma/alertas/generar` | Generar alertas automáticas |
 | `GET` | `/api/alertas` | Listar (`?nivel=`, `?abiertas=true`) |
 | `PATCH` | `/api/alertas/{id}/cerrar` | Cerrar alerta |
-| `POST` | `/api/alertas/pendientes/procesar` | Procesar siguiente (Cola FIFO) |
+| `POST` | `/api/alertas/pendientes/procesar` | Procesar siguiente (Cola de prioridad — extrae la más crítica) |
 | `GET` | `/api/alertas/pendientes/total` | Total pendientes |
 
 ### Eventos Inusuales — `/api/eventos`
@@ -307,8 +438,11 @@ El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 | `GET` | `/api/plataforma/grafo/clientes/{codigo}` | Clientes conectados a un inmueble |
 | `GET` | `/api/plataforma/grafo/inmuebles/{idCliente}` | Inmuebles conectados a un cliente |
 | `GET` | `/api/plataforma/grafo/bfs/{nodo}` | Recorrido BFS desde un nodo |
+| `GET` | `/api/plataforma/grafo/similares/{idCliente}` | Clientes con perfil similar (vecinos de vecinos) |
 | `GET` | `/api/plataforma/rankings/asesores` | Ranking de asesores por cierres |
 | `GET` | `/api/plataforma/rankings/zonas` | Actividad por zona/barrio |
+| `GET` | `/api/plataforma/clientes/alta-probabilidad-cierre` | Clientes con alta prob. de cierre |
+| `GET` | `/api/plataforma/rankings/demanda-sectores` | Simulación de crecimiento por sector |
 
 ---
 
@@ -317,15 +451,17 @@ El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 ```
 Persona (abstract)
  ├── Cliente
- │     ├── inmueblesConsultados  : SimpleLinkedList<Inmueble>
- │     ├── propiedadesVisitadas  : SimpleLinkedList<Inmueble>
- │     ├── inmueblesGuardados    : SimpleLinkedList<Inmueble>
- │     ├── inmueblesDescartados  : SimpleLinkedList<Inmueble>
- │     └── listaRecomendaciones  : SimpleLinkedList<Recomendacion>
+ │     ├── inmueblesConsultados      : SimpleLinkedList<Inmueble>
+ │     ├── propiedadesVisitadas      : SimpleLinkedList<Inmueble>
+ │     ├── inmueblesGuardados        : SimpleLinkedList<Inmueble>
+ │     ├── inmueblesDescartados      : SimpleLinkedList<Inmueble>
+ │     ├── inmueblesNegociados       : SimpleLinkedList<Inmueble>
+ │     ├── listaRecomendaciones      : SimpleLinkedList<Recomendacion>
+ │     └── historialInteracciones    : SimpleLinkedList<Interaccion>
  └── Asesor
-       ├── inmueblesAsignados    : SimpleLinkedList<Inmueble>
-       ├── visitasAgendadas      : SimpleLinkedList<Visita>
-       └── cierresRealizados     : SimpleLinkedList<Operacion>
+       ├── inmueblesAsignados        : SimpleLinkedList<Inmueble>
+       ├── visitasAgendadas          : SimpleLinkedList<Visita>
+       └── cierresRealizados         : SimpleLinkedList<Operacion>
 
 Inmueble  ──── Visita ──── Cliente
    │                          │
@@ -333,24 +469,24 @@ Inmueble  ──── Visita ──── Cliente
               │
            Asesor
 
-Alerta        EventoInusual        Recomendacion
+Alerta        EventoInusual        Recomendacion        Interaccion
 ```
 
 ---
 
 ## Datos de prueba
 
-Al iniciar la aplicación, el `DataLoader` inserta automáticamente:
+Al iniciar la aplicación por primera vez, el `DataLoader` inserta automáticamente:
 
 | Entidad | Cantidad |
 |---|---|
 | Asesores | 5 |
 | Clientes | 10 |
 | Inmuebles | 20 (Medellín, Bogotá, Cali) |
-| Visitas | 20 (pasadas, presentes y futuras) |
-| Operaciones | 8 |
+| Visitas | 10 (pasadas y recientes) |
+| Operaciones | 4 |
 
-Los IDs siguen el patrón `ASR-00X`, `CLI-00X`, `INM-00X`, `VIS-00X`, `OP-00X`.
+**Nota:** desde la segunda ejecución en adelante el sistema carga desde los archivos JSON en `/data/`, preservando todos los cambios realizados durante la sesión anterior.
 
 ---
 
@@ -359,10 +495,11 @@ Los IDs siguen el patrón `ASR-00X`, `CLI-00X`, `INM-00X`, `VIS-00X`, `OP-00X`.
 ```
 ├── pom.xml                          # Dependencias Maven (Java 21 + Spring Boot 3)
 ├── mvnw / mvnw.cmd                  # Maven Wrapper
+├── data/                            # Datos persistidos en JSON (se genera en runtime)
 ├── src/
 │   └── main/java/.../PropTech/
 │       ├── config/
-│       │   ├── DataLoader.java      # Carga datos de prueba al iniciar
+│       │   ├── DataLoader.java      # Carga/restaura datos al iniciar
 │       │   ├── JacksonConfig.java   # Fechas ISO-8601
 │       │   ├── OpenApiConfig.java   # Swagger UI
 │       │   └── WebConfig.java       # CORS
@@ -374,8 +511,9 @@ Los IDs siguen el patrón `ASR-00X`, `CLI-00X`, `INM-00X`, `VIS-00X`, `OP-00X`.
 │       │   └── enums/               # Tipos enumerados
 │       ├── repository/              # Repositorios con estructuras de datos
 │       ├── service/                 # Lógica de negocio
-│       │   └── PlataformaBeta.java  # Orquestador principal
-│       ├── structures/              # Implementaciones propias
+│       │   ├── PlataformaBeta.java  # Orquestador principal
+│       │   └── PersistenciaService.java # Guardar/restaurar en JSON
+│       ├── structures/              # Implementaciones propias (sin java.util)
 │       │   ├── AVLTree.java
 │       │   ├── Graph.java
 │       │   ├── HashTable.java
@@ -391,8 +529,10 @@ Los IDs siguen el patrón `ASR-00X`, `CLI-00X`, `INM-00X`, `VIS-00X`, `OP-00X`.
     │   ├── core/
     │   │   ├── models/              # Interfaces TypeScript
     │   │   ├── services/            # Servicios HTTP (uno por entidad)
+    │   │   ├── guards/              # authGuard + adminGuard
     │   │   └── interceptors/        # Error interceptor global
     │   └── features/                # Componentes por módulo
+    │       ├── login/               # Pantalla de login y registro
     │       ├── dashboard/
     │       ├── inmuebles/
     │       ├── clientes/
@@ -402,7 +542,8 @@ Los IDs siguen el patrón `ASR-00X`, `CLI-00X`, `INM-00X`, `VIS-00X`, `OP-00X`.
     │       ├── alertas/
     │       ├── eventos/
     │       ├── recomendaciones/
-    │       └── grafo/
+    │       ├── grafo/
+    │       └── cliente-portal/      # Portal exclusivo para usuarios CLIENTE
     ├── proxy.conf.json              # Proxy /api → localhost:8080
     └── angular.json
 ```
@@ -434,6 +575,8 @@ Todas las respuestas de error siguen el formato:
 }
 ```
 
+El frontend captura todos los errores HTTP mediante un interceptor global (`ErrorInterceptor`) y los muestra como notificaciones toast en la esquina superior derecha.
+
 ---
 
-*Universidad del Quindío — Programación Orientada a Objetos*
+*Universidad del Quindío — Programación Orientada a Objetos — Estructuras de Datos*
