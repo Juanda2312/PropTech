@@ -140,6 +140,112 @@
     font-size: 0.8rem; color: var(--text-secondary);
 }
 
+/* ── Recomendaciones portal ───────────────────────────────────── */
+
+.recs-portal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.rec-portal-card {
+    display: flex; flex-direction: column; gap: 0;
+    padding: 0; overflow: hidden;
+    transition: all var(--transition);
+}
+.rec-portal-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-gold);
+    border-color: var(--gold-dim);
+}
+
+.rec-portal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.85rem 1rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.rec-rank-badge {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 800;
+    flex-shrink: 0;
+}
+
+.rec-score-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+}
+.rec-score-svg { width: 48px; height: 48px; }
+.rec-circle-bg {
+    fill: none; stroke: var(--bg-elevated); stroke-width: 3.5;
+}
+.rec-circle-fill {
+    fill: none; stroke-width: 3.5; stroke-linecap: round;
+    transform: rotate(-90deg); transform-origin: 50% 50%;
+    transition: stroke-dasharray 600ms ease;
+}
+.rec-score-text {
+    fill: var(--text-primary); font-size: 0.55rem; font-weight: 700;
+    text-anchor: middle; font-family: 'DM Sans', sans-serif;
+}
+.rec-score-label {
+    font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.rec-portal-body {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    padding: 1rem;
+    flex: 1;
+}
+
+.rec-portal-badges { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+
+.rec-portal-dir {
+    font-size: 0.95rem; font-weight: 600;
+    color: var(--text-primary); margin: 0;
+}
+
+.rec-portal-ciudad {
+    font-size: 0.8rem; margin: 0;
+}
+
+.rec-portal-stats {
+    display: flex; gap: 0.75rem;
+    font-size: 0.8rem; color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.rec-criterio {
+    display: flex; flex-direction: column; gap: 0.2rem;
+    background: var(--bg-secondary);
+    border-left: 2px solid var(--gold-dim);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 0.5rem 0.7rem;
+    margin-top: 0.25rem;
+}
+.rec-criterio-label {
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--gold);
+}
+.rec-criterio-text {
+    font-size: 0.78rem; color: var(--text-secondary); line-height: 1.4;
+}
+
+.rec-portal-precio {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem; font-weight: 700; color: var(--gold);
+    margin-top: auto;
+}
+
+.rec-portal-actions {
+    display: flex; gap: 0.4rem; flex-wrap: wrap;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+}
+
 /* Aviso vinculo */
 .aviso-vinculo {
     display: flex; gap: 0.75rem; align-items: flex-start;
@@ -156,4 +262,5 @@
     .portal-main { padding: 1rem; }
     .topbar-user .user-info { display: none; }
     .inmuebles-grid { grid-template-columns: 1fr; }
+    .recs-portal-grid { grid-template-columns: 1fr; }
 }

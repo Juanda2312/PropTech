@@ -34,6 +34,9 @@
         <button class="pnav-btn" [class.active]="seccion==='interacciones'" (click)="cambiarSeccion('interacciones')">
             📊 Mis Interacciones
         </button>
+        <button class="pnav-btn" [class.active]="seccion==='recomendaciones'" (click)="cambiarSeccion('recomendaciones')">
+            ✨ Recomendaciones
+        </button>
     </nav>
 
     <!-- Contenido -->
@@ -214,6 +217,128 @@
                         <span style="color:var(--gold);font-size:0.8rem;font-weight:600;margin-left:auto">
                             {{ formatPrice(item.inmueble.precio) }}
                         </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════
+             SECCIÓN: RECOMENDACIONES PERSONALIZADAS
+        ══════════════════════════════════════════ -->
+        <div *ngIf="seccion==='recomendaciones'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header">
+                <div>
+                    <h2>✨ Inmuebles recomendados para ti</h2>
+                    <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.25rem">
+                        Basado en tu presupuesto, tipo de inmueble deseado y zonas de interés
+                    </p>
+                </div>
+                <button class="btn btn-primary" (click)="cargarRecomendaciones()" [disabled]="loadingRecomendaciones || !clienteBackendId">
+                    {{ loadingRecomendaciones ? '⏳ Calculando...' : '↺ Actualizar' }}
+                </button>
+            </div>
+
+            <!-- Sin vinculación -->
+            <div *ngIf="!clienteBackendId" class="empty-state card">
+                <span class="icon">🔒</span>
+                <h3>Cuenta no vinculada</h3>
+                <p>Tu cuenta no está registrada en el sistema. Contacta a un asesor para obtener recomendaciones personalizadas.</p>
+            </div>
+
+            <!-- Cargando -->
+            <div *ngIf="clienteBackendId && loadingRecomendaciones" class="loading" style="padding:4rem">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1rem">
+                    <div class="spinner"></div>
+                    <p style="font-size:0.85rem;color:var(--text-muted)">Analizando tu perfil y preferencias...</p>
+                </div>
+            </div>
+
+            <!-- Sin recomendaciones todavía -->
+            <div *ngIf="clienteBackendId && !loadingRecomendaciones && recomendaciones.length === 0" class="empty-state card">
+                <span class="icon" style="font-size:3.5rem">✨</span>
+                <h3>Descubre tu próximo hogar</h3>
+                <p>Generamos recomendaciones personalizadas según tu perfil de búsqueda.</p>
+                <button class="btn btn-primary" style="margin-top:0.5rem" (click)="cargarRecomendaciones()">
+                    ✨ Generar recomendaciones
+                </button>
+            </div>
+
+            <!-- Lista de recomendaciones -->
+            <div *ngIf="!loadingRecomendaciones && recomendaciones.length > 0">
+                <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem">
+                    {{ recomendaciones.length }} inmueble(s) encontrados · ordenados por puntaje de coincidencia
+                </p>
+
+                <div class="recs-portal-grid">
+                    <div *ngFor="let r of recomendaciones; let i = index" class="rec-portal-card card">
+
+                        <!-- Encabezado: ranking + puntaje -->
+                        <div class="rec-portal-header">
+                            <div class="rec-rank-badge"
+                                 [style.background]="i===0 ? 'var(--gold)' : i===1 ? '#9ca3af' : i===2 ? '#cd7c52' : 'var(--bg-elevated)'"
+                                 [style.color]="i < 3 ? 'var(--bg-primary)' : 'var(--text-secondary)'">
+                                #{{ i + 1 }}
+                            </div>
+                            <div class="rec-score-wrap">
+                                <svg viewBox="0 0 36 36" class="rec-score-svg">
+                                    <path class="rec-circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <path class="rec-circle-fill"
+                                          [style.stroke]="getPuntajeColor(r.puntaje)"
+                                          [attr.stroke-dasharray]="r.puntaje + ', 100'"
+                                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                    <text x="18" y="20.35" class="rec-score-text">{{ r.puntaje | number:'1.0-0' }}</text>
+                                </svg>
+                                <span class="rec-score-label" [style.color]="getPuntajeColor(r.puntaje)">
+                                    {{ getPuntajeLabel(r.puntaje) }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Info del inmueble -->
+                        <div class="rec-portal-body">
+                            <div class="rec-portal-badges">
+                                <span class="badge badge-blue">{{ r.inmueble?.tipoInmueble }}</span>
+                                <span class="badge" [class]="r.inmueble?.finalidad === 'VENTA' ? 'badge-teal' : 'badge-purple'">
+                                    {{ r.inmueble?.finalidad }}
+                                </span>
+                            </div>
+                            <h3 class="rec-portal-dir">{{ r.inmueble?.direccion }}</h3>
+                            <p class="rec-portal-ciudad text-muted">{{ r.inmueble?.ciudad }} · {{ r.inmueble?.barrio }}</p>
+
+                            <div class="rec-portal-stats">
+                                <span>🛏 {{ r.inmueble?.habitaciones }} hab.</span>
+                                <span>🚿 {{ r.inmueble?.banos }} baños</span>
+                                <span>📐 {{ r.inmueble?.area }} m²</span>
+                            </div>
+
+                            <!-- Por qué se recomienda -->
+                            <div class="rec-criterio" *ngIf="r.criterio">
+                                <span class="rec-criterio-label">¿Por qué?</span>
+                                <span class="rec-criterio-text">{{ r.criterio }}</span>
+                            </div>
+
+                            <div class="rec-portal-precio">{{ formatPrice(r.inmueble?.precio ?? 0) }}</div>
+                        </div>
+
+                        <!-- Acciones -->
+                        <div class="rec-portal-actions">
+                            <button class="btn-fav"
+                                    [class.active]="esFavorito(r.inmueble!)"
+                                    (click)="toggleFavorito(r.inmueble!)"
+                                    *ngIf="r.inmueble">
+                                {{ esFavorito(r.inmueble!) ? '⭐ Guardado' : '☆ Guardar' }}
+                            </button>
+                            <button class="btn-accion btn-visita"
+                                    (click)="abrirAgendarVisita(r.inmueble)"
+                                    *ngIf="r.inmueble">
+                                📅 Agendar visita
+                            </button>
+                            <button class="btn-accion btn-intencion"
+                                    (click)="abrirIntencion(r.inmueble, r.inmueble?.finalidad==='VENTA' ? 'INTENCION_COMPRA' : 'INTENCION_RENTA')"
+                                    *ngIf="r.inmueble">
+                                {{ r.inmueble?.finalidad === 'VENTA' ? '💰 Quiero comprar' : '🔑 Quiero rentar' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

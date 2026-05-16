@@ -7,10 +7,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { InmuebleService } from '../../core/services/inmueble.service';
 import { ClienteService, Interaccion, IntencionDTO } from '../../core/services/cliente.service';
 import { AsesorService } from '../../core/services/asesor.service';
+import { PlataformaService } from '../../core/services/plataforma.service';
 import { ToastService } from '../../core/services/toast.service';
-import { Inmueble, Visita, Asesor } from '../../core/models';
+import { Inmueble, Asesor, Recomendacion } from '../../core/models';
 
-type Seccion = 'inmuebles' | 'visitas' | 'favoritos' | 'historial' | 'interacciones';
+type Seccion = 'inmuebles' | 'visitas' | 'favoritos' | 'historial' | 'interacciones' | 'recomendaciones';
 
 @Component({
     selector: 'app-cliente-portal',
@@ -26,8 +27,10 @@ export class ClientePortalComponent implements OnInit {
     historial: Inmueble[] = [];
     asesores: Asesor[] = [];
     interacciones: Interaccion[] = [];
+    recomendaciones: Recomendacion[] = [];
     loading = true;
     loadingInteracciones = false;
+    loadingRecomendaciones = false;
     seccion: Seccion = 'inmuebles';
     filtroTexto = '';
     clienteBackendId = '';
@@ -53,6 +56,7 @@ export class ClientePortalComponent implements OnInit {
         private inmuebleService: InmuebleService,
         private clienteService: ClienteService,
         private asesorService: AsesorService,
+        private plataformaService: PlataformaService,
         private toast: ToastService,
         private router: Router
     ) {}
@@ -131,10 +135,21 @@ export class ClientePortalComponent implements OnInit {
         });
     }
 
+    cargarRecomendaciones() {
+        if (!this.clienteBackendId) return;
+        this.loadingRecomendaciones = true;
+        this.recomendaciones = [];
+        this.plataformaService.generarRecomendaciones(this.clienteBackendId).subscribe({
+            next: d => { this.recomendaciones = d; this.loadingRecomendaciones = false; },
+            error: (e: any) => { this.toast.error(e.message || 'Error al cargar recomendaciones'); this.loadingRecomendaciones = false; }
+        });
+    }
+
     cambiarSeccion(s: Seccion) {
         this.seccion = s;
         if (s === 'historial' || s === 'favoritos') this.cargarHistorialYFavoritos();
         if (s === 'interacciones') this.cargarInteracciones();
+        if (s === 'recomendaciones' && this.recomendaciones.length === 0) this.cargarRecomendaciones();
     }
 
     // ── Favoritos ─────────────────────────────────────────────────────
@@ -246,6 +261,19 @@ export class ClientePortalComponent implements OnInit {
             i.tipoInmueble?.toLowerCase().includes(t) ||
             i.direccion?.toLowerCase().includes(t)
         );
+    }
+
+    getPuntajeColor(p: number): string {
+        if (p >= 80) return 'var(--accent-green)';
+        if (p >= 50) return 'var(--gold)';
+        return 'var(--text-secondary)';
+    }
+
+    getPuntajeLabel(p: number): string {
+        if (p >= 80) return 'Excelente';
+        if (p >= 60) return 'Muy bueno';
+        if (p >= 40) return 'Bueno';
+        return 'Posible';
     }
 
     tipoInteraccionLabel(tipo: string): string {
