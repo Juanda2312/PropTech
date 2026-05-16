@@ -41,38 +41,7 @@
 
     <!-- Contenido -->
     <main class="portal-main">
-
-        <!-- SECCIÓN INMUEBLES: tarjeta con mouseenter -->
-        <div *ngFor="let inm of inmueblesFiltrados" class="inm-card card"
-             (mouseenter)="registrarConsulta(inm)">
-            <div class="inm-card-top">
-                <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
-                <span class="badge" [class]="inm.finalidad==='VENTA'?'badge-teal':'badge-purple'">{{ inm.finalidad }}</span>
-            </div>
-            <h3 class="inm-dir">{{ inm.direccion }}</h3>
-            <p class="inm-ubicacion text-muted">{{ inm.ciudad }} · {{ inm.barrio }}</p>
-            <div class="inm-stats">
-                <span>🛏 {{ inm.habitaciones }} hab.</span>
-                <span>🚿 {{ inm.banos }} baños</span>
-                <span>📐 {{ inm.area }} m²</span>
-            </div>
-            <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
-            <div class="inm-acciones">
-                <button class="btn-fav"
-                        [class.active]="esFavorito(inm)"
-                        (click)="toggleFavorito(inm)">
-                    {{ esFavorito(inm) ? '⭐ Favorito' : '☆ Guardar' }}
-                </button>
-                <button class="btn-accion btn-visita" (click)="abrirAgendarVisita(inm)">
-                    📅 Visita
-                </button>
-                <button class="btn-accion btn-intencion"
-                        (click)="abrirIntencion(inm, inm.finalidad==='VENTA' ? 'INTENCION_COMPRA' : 'INTENCION_RENTA')">
-                    {{ inm.finalidad === 'VENTA' ? '💰 Comprar' : '🔑 Rentar' }}
-                </button>
-            </div>
-        </div>
-
+        
 
         <!-- ══════════════════════════════════════════
              SECCIÓN: INMUEBLES DISPONIBLES
