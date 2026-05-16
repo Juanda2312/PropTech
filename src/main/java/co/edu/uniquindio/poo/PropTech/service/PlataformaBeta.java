@@ -106,7 +106,6 @@ public class PlataformaBeta {
         Cliente  cliente  = clienteService.buscarPorId(dto.getIdCliente());
         Asesor   asesor   = asesorService.buscarPorId(dto.getIdAsesor());
 
-        // Registrar precio actual en historial para detección de cambios frecuentes
         List<Double> precios = historialPrecios.get(inmueble.getCodigo());
         if (precios == null) {
             precios = new ArrayList<>();
@@ -116,10 +115,26 @@ public class PlataformaBeta {
 
         Operacion operacion = operacionService.registrar(dto, inmueble, cliente, asesor);
         asesorService.registrarCierre(asesor.getId(), operacion);
+
+        // ── Actualizar historial del cliente ──────────────────────────
+        clienteService.registrarInmuebleConsultado(cliente.getId(), inmueble);
+        clienteService.registrarPropiedadVisitada(cliente.getId(), inmueble);
         clienteService.registrarInmuebleNegociado(cliente.getId(), inmueble);
+        // Registrar interacción según tipo de operación
+        TipoInteraccion tipoInteraccion = (dto.getTipoOperacion() == TipoOperacion.VENTA)
+                ? TipoInteraccion.COMPRA_REALIZADA
+                : TipoInteraccion.ARRIENDO_REALIZADO;
+        clienteService.registrarInteraccion(cliente.getId(), tipoInteraccion, inmueble,
+                dto.getTipoOperacion().name() + " registrada: " + inmueble.getDireccion()
+                        + ", " + inmueble.getCiudad()
+                        + " — valor: $" + String.format("%,.0f", dto.getValorAcordado()));
+        // Conectar cliente ↔ inmueble en el grafo
+        grafoRelaciones.addEdge(cliente.getId(), inmueble.getCodigo());
+        // ─────────────────────────────────────────────────────────────
 
         return operacion;
     }
+
     // ================================================================
     // MÉTODOS PARA RESTAURAR GRAFO DESDE PERSISTENCIA
     // ================================================================

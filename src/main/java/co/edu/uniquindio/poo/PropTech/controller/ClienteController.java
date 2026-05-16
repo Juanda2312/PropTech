@@ -111,9 +111,12 @@ public class ClienteController {
     @GetMapping("/{id}/historial")
     public ResponseEntity<List<Inmueble>> obtenerHistorial(@PathVariable String id) {
         Cliente cliente = clienteService.buscarPorId(id);
-        List<Inmueble> historial = new java.util.ArrayList<>();
-        cliente.getInmueblesConsultados().forEach(historial::add);
-        return ResponseEntity.ok(historial);
+        // LinkedHashSet para eliminar duplicados manteniendo orden de inserción
+        java.util.LinkedHashSet<Inmueble> set = new java.util.LinkedHashSet<>();
+        cliente.getInmueblesConsultados().forEach(set::add);
+        cliente.getPropiedadesVisitadas().forEach(set::add);
+        cliente.getInmueblesNegociados().forEach(set::add);
+        return ResponseEntity.ok(new java.util.ArrayList<>(set));
     }
 
     // ----------------------------------------------------------------
