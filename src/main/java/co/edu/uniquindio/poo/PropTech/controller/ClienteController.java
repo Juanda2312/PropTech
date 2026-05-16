@@ -18,7 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/clientes")
-public class ClienteController {
+public class    ClienteController {
 
     private final ClienteService  clienteService;
     private final InmuebleService inmuebleService;
@@ -192,4 +192,32 @@ public class ClienteController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(interaccion);
     }
+
+    // Registrar consulta de inmueble desde el portal del cliente
+    // POST /api/clientes/{id}/consulta/{codigoInmueble}
+    // Se llama cuando el cliente interactúa con una tarjeta de inmueble
+    // (hover, click en acción) para registrar el interés en el historial.
+    // ----------------------------------------------------------------
+
+    @PostMapping("/{id}/consulta/{codigoInmueble}")
+    public ResponseEntity<Interaccion> registrarConsulta(
+            @PathVariable String id,
+            @PathVariable String codigoInmueble) {
+
+        Inmueble inmueble = inmuebleService.buscarPorCodigo(codigoInmueble);
+
+        // Agrega el inmueble a inmueblesConsultados (lista para el historial)
+        clienteService.registrarInmuebleConsultado(id, inmueble);
+
+        // También registra en el historial unificado de interacciones
+        Interaccion interaccion = clienteService.registrarInteraccion(
+                id,
+                TipoInteraccion.INMUEBLE_CONSULTADO,
+                inmueble,
+                "Inmueble consultado: " + inmueble.getDireccion() + ", " + inmueble.getCiudad()
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(interaccion);
+    }
+
 }
