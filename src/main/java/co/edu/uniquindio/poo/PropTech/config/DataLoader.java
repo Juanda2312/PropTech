@@ -62,13 +62,17 @@ public class DataLoader implements CommandLineRunner {
     // ================================================================
 
     private void cargarDesdeArchivos() {
+        // 1. Asesores
         for (Asesor a : persistencia.cargarAsesores()) {
             try { asesorRepository.save(a); } catch (Exception ignored) {}
         }
+
+        // 2. Inmuebles
         for (Inmueble i : persistencia.cargarInmuebles()) {
             try {
                 if (i.getAsesor() != null) {
-                    Asesor asesor = asesorRepository.findById(i.getAsesor().getId()).orElse(i.getAsesor());
+                    Asesor asesor = asesorRepository.findById(i.getAsesor().getId())
+                            .orElse(i.getAsesor());
                     i.setAsesor(asesor);
                     asesor.getInmueblesAsignados().addLast(i);
                 }
@@ -76,11 +80,13 @@ public class DataLoader implements CommandLineRunner {
                 plataforma.agregarNodoGrafo(i.getCodigo());
             } catch (Exception ignored) {}
         }
+
+        // 3. Clientes (sin interacciones aún — se restauran al final)
         for (Cliente c : persistencia.cargarClientes()) {
             try {
                 clienteRepository.save(c);
                 plataforma.agregarNodoGrafo(c.getId());
-                // Restaurar favoritos
+                // Restaurar favoritos desde codigosFavoritos
                 if (c.getCodigosFavoritos() != null) {
                     for (String cod : c.getCodigosFavoritos()) {
                         inmuebleRepository.findById(cod).ifPresent(
@@ -90,35 +96,56 @@ public class DataLoader implements CommandLineRunner {
                 }
             } catch (Exception ignored) {}
         }
+
+        // 4. Visitas
         for (Visita v : persistencia.cargarVisitas()) {
             try {
                 if (v.getCliente() != null)
-                    v.setCliente(clienteRepository.findById(v.getCliente().getId()).orElse(v.getCliente()));
+                    v.setCliente(clienteRepository.findById(v.getCliente().getId())
+                            .orElse(v.getCliente()));
                 if (v.getInmueble() != null)
-                    v.setInmueble(inmuebleRepository.findById(v.getInmueble().getCodigo()).orElse(v.getInmueble()));
+                    v.setInmueble(inmuebleRepository.findById(v.getInmueble().getCodigo())
+                            .orElse(v.getInmueble()));
                 if (v.getAsesor() != null)
-                    v.setAsesor(asesorRepository.findById(v.getAsesor().getId()).orElse(v.getAsesor()));
+                    v.setAsesor(asesorRepository.findById(v.getAsesor().getId())
+                            .orElse(v.getAsesor()));
                 visitaRepository.save(v);
                 if (v.getCliente() != null && v.getInmueble() != null)
-                    plataforma.agregarAristaGrafo(v.getCliente().getId(), v.getInmueble().getCodigo());
+                    plataforma.agregarAristaGrafo(v.getCliente().getId(),
+                            v.getInmueble().getCodigo());
             } catch (Exception ignored) {}
         }
+
+        // 5. Operaciones
         for (Operacion op : persistencia.cargarOperaciones()) {
             try {
                 if (op.getInmueble() != null)
-                    op.setInmueble(inmuebleRepository.findById(op.getInmueble().getCodigo()).orElse(op.getInmueble()));
+                    op.setInmueble(inmuebleRepository.findById(op.getInmueble().getCodigo())
+                            .orElse(op.getInmueble()));
                 if (op.getCliente() != null)
-                    op.setCliente(clienteRepository.findById(op.getCliente().getId()).orElse(op.getCliente()));
+                    op.setCliente(clienteRepository.findById(op.getCliente().getId())
+                            .orElse(op.getCliente()));
                 if (op.getAsesor() != null)
-                    op.setAsesor(asesorRepository.findById(op.getAsesor().getId()).orElse(op.getAsesor()));
+                    op.setAsesor(asesorRepository.findById(op.getAsesor().getId())
+                            .orElse(op.getAsesor()));
                 operacionRepository.save(op);
             } catch (Exception ignored) {}
         }
+
+        // 6. Alertas y eventos
         for (Alerta al : persistencia.cargarAlertas()) {
             try { alertaRepository.save(al); } catch (Exception ignored) {}
         }
         for (EventoInusual ev : persistencia.cargarEventos()) {
             try { eventoRepository.save(ev); } catch (Exception ignored) {}
+        }
+
+        // 7. Interacciones — SE RESTAURAN AL FINAL porque necesitan
+        //    clientes e inmuebles ya cargados en memoria
+        try {
+            persistencia.restaurarInteracciones();
+        } catch (Exception e) {
+            System.err.println("⚠️  Error restaurando interacciones: " + e.getMessage());
         }
     }
 
@@ -134,7 +161,6 @@ public class DataLoader implements CommandLineRunner {
         try { cargarOperaciones(); } catch (Exception e) { System.err.println("⚠️ " + e.getMessage()); }
     }
 
-    // IDs asesores: cédula colombiana de exactamente 10 dígitos
     private void cargarAsesores() {
         String[][] asesores = {
                 {"1071234567", "Carlos Mendoza",  "3101234567", "Norte"},
@@ -148,7 +174,6 @@ public class DataLoader implements CommandLineRunner {
             catch (Exception ignored) {}
     }
 
-    // IDs clientes: cédula colombiana de exactamente 10 dígitos (distintas a asesores)
     private void cargarClientes() {
         Object[][] clientes = {
                 {"1094567890","Juan Pérez",     "juan@gmail.com",    "3112345678","COMPRADOR",    450_000_000d, new Zona[]{Zona.NORTE},           TipoInmueble.APARTAMENTO,    2, EstadoBusqueda.ACTIVO},
@@ -172,7 +197,6 @@ public class DataLoader implements CommandLineRunner {
             } catch (Exception ignored) {}
     }
 
-    // IDs inmuebles: matrícula inmobiliaria estilo colombiano (municipio-número)
     private void cargarInmuebles() {
         Object[][] inmuebles = {
                 {"001-1234567","Calle 10 # 43-20", "Medellín","El Poblado",    TipoInmueble.APARTAMENTO,   FinalidadInmueble.VENTA,    380_000_000d,  85d,3,2,"DISPONIBLE",true, "1071234567"},
@@ -207,7 +231,6 @@ public class DataLoader implements CommandLineRunner {
             } catch (Exception ignored) {}
     }
 
-    // IDs visitas: V + número (sin guiones, sin prefijos largos)
     private void cargarVisitas() {
         Object[][] visitas = {
                 {"V001","1094567890","001-1234567", LocalDate.now().minusDays(10), LocalTime.of(10,  0), "1071234567", "Muy interesado"},
@@ -231,7 +254,6 @@ public class DataLoader implements CommandLineRunner {
             } catch (Exception ignored) {}
     }
 
-    // IDs operaciones: O + número simple
     private void cargarOperaciones() {
         Object[][] ops = {
                 {"O001","001-1234567","1094567890","1071234567", LocalDate.now().minusDays(5), TipoOperacion.VENTA,    380_000_000d, 3d, "CERRADO"},
