@@ -58,7 +58,7 @@ export class ClienteService {
     return this.http.delete<void>(`${this.base}/clientes/${id}/favoritos/${codigoInmueble}`);
   }
 
-  // ── Nuevos: interacciones ─────────────────────────────────────────
+  // ── Interacciones ─────────────────────────────────────────────────
   obtenerInteracciones(id: string, tipo?: string): Observable<Interaccion[]> {
     let params = new HttpParams();
     if (tipo) params = params.set('tipo', tipo);
@@ -71,5 +71,17 @@ export class ClienteService {
 
   agendarVisitaDesdePortal(id: string, dto: any): Observable<Interaccion> {
     return this.http.post<Interaccion>(`${this.base}/clientes/${id}/visitas`, dto);
+  }
+
+  /**
+   * Registra que el cliente consultó (vio) un inmueble.
+   * Usa el endpoint POST /api/clientes/{id}/consulta/{codigoInmueble}
+   * que llama a clienteService.registrarInmuebleConsultado en el backend.
+   */
+  registrarConsultaInmueble(id: string, codigoInmueble: string): Observable<Interaccion> {
+    return this.http.post<Interaccion>(
+        `${this.base}/clientes/${id}/consulta/${codigoInmueble}`,
+        {}
+    );
   }
 }
