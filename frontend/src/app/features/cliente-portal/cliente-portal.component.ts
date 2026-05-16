@@ -36,6 +36,9 @@ export class ClientePortalComponent implements OnInit {
     clienteBackendId = '';
     vinculado = false;
 
+    // Registro de inmuebles ya "consultados" en esta sesión para no duplicar
+    private inmueblesConsultadosEnSesion = new Set<string>();
+
     // Modal: agendar visita
     showVisitaModal = false;
     submittingVisita = false;
@@ -152,6 +155,25 @@ export class ClientePortalComponent implements OnInit {
         if (s === 'recomendaciones' && this.recomendaciones.length === 0) this.cargarRecomendaciones();
     }
 
+    // ── Registro de consulta de inmueble ─────────────────────────────
+    // Se llama cuando el cliente hace hover o click en la tarjeta de un inmueble.
+    // Solo registra una vez por sesión por inmueble para evitar spam.
+    registrarConsulta(inm: Inmueble) {
+        if (!this.clienteBackendId) return;
+        if (this.inmueblesConsultadosEnSesion.has(inm.codigo)) return;
+
+        this.inmueblesConsultadosEnSesion.add(inm.codigo);
+
+        // Llamar al endpoint de intención con tipo especial para registrar consulta
+        // Usamos el endpoint /api/clientes/{id}/intencion con un detalle de consulta
+        // pero la forma más limpia es llamar directamente al historial via descartados
+        // En realidad el backend ya tiene POST /api/clientes/{id}/intencion
+        // que llama a registrarInteraccion con INMUEBLE_CONSULTADO.
+        // Creamos una intención de tipo consulta reutilizando el endpoint de interacción.
+        this.clienteService.registrarConsultaInmueble(this.clienteBackendId, inm.codigo)
+            .subscribe({ next: () => {}, error: () => {} });
+    }
+
     // ── Favoritos ─────────────────────────────────────────────────────
 
     esFavorito(inm: Inmueble): boolean {
@@ -163,6 +185,9 @@ export class ClientePortalComponent implements OnInit {
             this.toast.warn('Tu cuenta no está registrada. Contacta a un asesor.');
             return;
         }
+        // Registrar consulta al interactuar con el inmueble
+        this.registrarConsulta(inm);
+
         if (this.esFavorito(inm)) {
             this.clienteService.eliminarFavorito(this.clienteBackendId, inm.codigo).subscribe({
                 next: () => { this.toast.success('Eliminado de favoritos'); this.cargarHistorialYFavoritos(); },
@@ -183,6 +208,9 @@ export class ClientePortalComponent implements OnInit {
             this.toast.warn('Tu cuenta no está registrada. Contacta a un asesor.');
             return;
         }
+        // Registrar consulta al interactuar con el inmueble
+        if (inm) this.registrarConsulta(inm);
+
         this.visitaForm = {
             codigoInmueble: inm?.codigo || '',
             idAsesor: inm?.asesor?.id || '',
@@ -213,6 +241,8 @@ export class ClientePortalComponent implements OnInit {
                 this.toast.success('¡Visita agendada!');
                 this.showVisitaModal = false;
                 this.submittingVisita = false;
+                // Refrescar historial e interacciones
+                this.cargarHistorialYFavoritos();
                 if (this.seccion === 'interacciones') this.cargarInteracciones();
             },
             error: (e: any) => { this.toast.error(e.message); this.submittingVisita = false; }
@@ -226,6 +256,9 @@ export class ClientePortalComponent implements OnInit {
             this.toast.warn('Tu cuenta no está registrada. Contacta a un asesor.');
             return;
         }
+        // Registrar consulta al interactuar con el inmueble
+        if (inm) this.registrarConsulta(inm);
+
         this.intencionForm = { codigoInmueble: inm?.codigo || '', tipo, detalle: '' };
         this.showIntencionModal = true;
     }
@@ -244,6 +277,8 @@ export class ClientePortalComponent implements OnInit {
                 this.toast.success(`¡Intención de ${accion} registrada! Un asesor se comunicará contigo.`);
                 this.showIntencionModal = false;
                 this.submittingIntencion = false;
+                // Refrescar historial e interacciones
+                this.cargarHistorialYFavoritos();
                 if (this.seccion === 'interacciones') this.cargarInteracciones();
             },
             error: (e: any) => { this.toast.error(e.message); this.submittingIntencion = false; }
