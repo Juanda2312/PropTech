@@ -41,6 +41,10 @@ public class Cliente extends Persona {
     @JsonIgnore
     private SimpleLinkedList<Recomendacion> listaRecomendaciones = new SimpleLinkedList<>();
 
+    /** Historial unificado de todas las interacciones del cliente */
+    @JsonIgnore
+    private SimpleLinkedList<Interaccion> historialInteracciones = new SimpleLinkedList<>();
+
     // Solo para serialización JSON — no usar directamente
     private List<String> codigosFavoritos = new ArrayList<>();
 

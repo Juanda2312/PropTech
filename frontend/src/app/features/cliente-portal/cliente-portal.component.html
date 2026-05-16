@@ -22,24 +22,26 @@
 
     <!-- Nav tabs -->
     <nav class="portal-nav">
-        <button class="pnav-btn" [class.active]="seccion==='inmuebles'" (click)="seccion='inmuebles'">
-            🏠 Consultar Inmuebles
+        <button class="pnav-btn" [class.active]="seccion==='inmuebles'" (click)="cambiarSeccion('inmuebles')">
+            🏠 Inmuebles
         </button>
-        <button class="pnav-btn" [class.active]="seccion==='visitas'" (click)="seccion='visitas'; cargarHistorialYFavoritos()">
-            📅 Mis Visitas
+        <button class="pnav-btn" [class.active]="seccion==='favoritos'" (click)="cambiarSeccion('favoritos')">
+            ⭐ Favoritos
         </button>
-        <button class="pnav-btn" [class.active]="seccion==='favoritos'" (click)="seccion='favoritos'; cargarHistorialYFavoritos()">
-            ⭐ Mis Favoritos
+        <button class="pnav-btn" [class.active]="seccion==='historial'" (click)="cambiarSeccion('historial')">
+            📋 Consultados
         </button>
-        <button class="pnav-btn" [class.active]="seccion==='historial'" (click)="seccion='historial'; cargarHistorialYFavoritos()">
-            📋 Historial
+        <button class="pnav-btn" [class.active]="seccion==='interacciones'" (click)="cambiarSeccion('interacciones')">
+            📊 Mis Interacciones
         </button>
     </nav>
 
     <!-- Contenido -->
     <main class="portal-main">
 
-        <!-- INMUEBLES -->
+        <!-- ══════════════════════════════════════════
+             SECCIÓN: INMUEBLES DISPONIBLES
+        ══════════════════════════════════════════ -->
         <div *ngIf="seccion==='inmuebles'" style="animation:fadeIn 250ms ease">
             <div class="portal-section-header">
                 <h2>Inmuebles disponibles</h2>
@@ -68,51 +70,27 @@
                         <span>📐 {{ inm.area }} m²</span>
                     </div>
                     <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
-                    <button class="btn-fav"
-                            [class.active]="esFavorito(inm)"
-                            (click)="toggleFavorito(inm)">
-                        {{ esFavorito(inm) ? '⭐ Quitar favorito' : '☆ Guardar favorito' }}
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- VISITAS -->
-        <div *ngIf="seccion==='visitas'" style="animation:fadeIn 250ms ease">
-            <div class="portal-section-header"><h2>Mis visitas agendadas</h2></div>
-
-            <div *ngIf="visitasCliente.length === 0" class="empty-state">
-                <span class="icon">📅</span>
-                <p *ngIf="vinculado">No tienes visitas agendadas aún. Contacta a un asesor.</p>
-                <div *ngIf="!vinculado" class="aviso-vinculo">
-                    <span class="aviso-icon">ℹ️</span>
-                    <div>
-                        <strong>Cuenta no vinculada al sistema</strong>
-                        <p>Tu ID de cliente en el sistema es: <code>CLI-{{ usuario?.id }}</code></p>
-                        <p>Dile a un asesor que te busque con ese ID para agendarte visitas y ver tu historial.</p>
+                    <div class="inm-acciones">
+                        <button class="btn-fav"
+                                [class.active]="esFavorito(inm)"
+                                (click)="toggleFavorito(inm)">
+                            {{ esFavorito(inm) ? '⭐ Favorito' : '☆ Guardar' }}
+                        </button>
+                        <button class="btn-accion btn-visita" (click)="abrirAgendarVisita(inm)">
+                            📅 Visita
+                        </button>
+                        <button class="btn-accion btn-intencion"
+                                (click)="abrirIntencion(inm, inm.finalidad==='VENTA' ? 'INTENCION_COMPRA' : 'INTENCION_RENTA')">
+                            {{ inm.finalidad === 'VENTA' ? '💰 Comprar' : '🔑 Rentar' }}
+                        </button>
                     </div>
                 </div>
             </div>
-
-            <div class="table-wrapper" *ngIf="visitasCliente.length > 0">
-                <table>
-                    <thead>
-                    <tr><th>Inmueble</th><th>Fecha</th><th>Hora</th><th>Asesor</th><th>Estado</th></tr>
-                    </thead>
-                    <tbody>
-                    <tr *ngFor="let v of visitasCliente">
-                        <td style="font-size:0.85rem">{{ v.inmueble?.direccion }}</td>
-                        <td>{{ v.fecha }}</td>
-                        <td>{{ v.hora }}</td>
-                        <td>{{ v.asesor?.nombre }}</td>
-                        <td><span class="badge" [class]="estadoBadge(v.estado)">{{ v.estado }}</span></td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
         </div>
 
-        <!-- FAVORITOS -->
+        <!-- ══════════════════════════════════════════
+             SECCIÓN: FAVORITOS
+        ══════════════════════════════════════════ -->
         <div *ngIf="seccion==='favoritos'" style="animation:fadeIn 250ms ease">
             <div class="portal-section-header"><h2>Mis inmuebles favoritos</h2></div>
 
@@ -126,37 +104,225 @@
                     <div class="inm-card-top">
                         <span class="badge badge-gold">⭐</span>
                         <span class="badge badge-blue">{{ inm.tipoInmueble }}</span>
+                        <span class="badge" [class]="inm.finalidad==='VENTA'?'badge-teal':'badge-purple'">{{ inm.finalidad }}</span>
                     </div>
                     <h3 class="inm-dir">{{ inm.direccion }}</h3>
                     <p class="inm-ubicacion text-muted">{{ inm.ciudad }} · {{ inm.barrio }}</p>
+                    <div class="inm-stats">
+                        <span>🛏 {{ inm.habitaciones }} hab.</span>
+                        <span>🚿 {{ inm.banos }} baños</span>
+                    </div>
                     <div class="inm-precio">{{ formatPrice(inm.precio) }}</div>
+                    <div class="inm-acciones">
+                        <button class="btn-accion btn-visita" (click)="abrirAgendarVisita(inm)">
+                            📅 Agendar visita
+                        </button>
+                        <button class="btn-accion btn-intencion"
+                                (click)="abrirIntencion(inm, inm.finalidad==='VENTA' ? 'INTENCION_COMPRA' : 'INTENCION_RENTA')">
+                            {{ inm.finalidad === 'VENTA' ? '💰 Quiero comprar' : '🔑 Quiero rentar' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- HISTORIAL -->
+        <!-- ══════════════════════════════════════════
+             SECCIÓN: HISTORIAL DE CONSULTAS
+        ══════════════════════════════════════════ -->
         <div *ngIf="seccion==='historial'" style="animation:fadeIn 250ms ease">
-            <div class="portal-section-header"><h2>Historial de interacciones</h2></div>
+            <div class="portal-section-header"><h2>Inmuebles consultados</h2></div>
 
             <div *ngIf="historial.length === 0" class="empty-state">
                 <span class="icon">📋</span>
-                <p>Sin historial de interacciones aún</p>
+                <p>Sin historial de consultas aún</p>
             </div>
 
             <div class="table-wrapper" *ngIf="historial.length > 0">
                 <table>
-                    <thead><tr><th>Inmueble</th><th>Ciudad</th><th>Tipo</th><th>Precio</th></tr></thead>
+                    <thead>
+                    <tr><th>Inmueble</th><th>Ciudad</th><th>Tipo</th><th>Precio</th><th>Acciones</th></tr>
+                    </thead>
                     <tbody>
                     <tr *ngFor="let inm of historial">
                         <td>{{ inm.direccion }}</td>
                         <td>{{ inm.ciudad }}</td>
                         <td><span class="badge badge-blue">{{ inm.tipoInmueble }}</span></td>
                         <td style="color:var(--gold);font-weight:600">{{ formatPrice(inm.precio) }}</td>
+                        <td>
+                            <div style="display:flex;gap:0.4rem">
+                                <button class="btn btn-secondary btn-sm"
+                                        (click)="abrirAgendarVisita(inm)">📅</button>
+                                <button class="btn btn-secondary btn-sm"
+                                        (click)="abrirIntencion(inm, inm.finalidad==='VENTA' ? 'INTENCION_COMPRA' : 'INTENCION_RENTA')">
+                                    {{ inm.finalidad === 'VENTA' ? '💰' : '🔑' }}
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
+        <!-- ══════════════════════════════════════════
+             SECCIÓN: HISTORIAL DE INTERACCIONES
+        ══════════════════════════════════════════ -->
+        <div *ngIf="seccion==='interacciones'" style="animation:fadeIn 250ms ease">
+            <div class="portal-section-header">
+                <h2>Mis interacciones</h2>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
+                    <select class="search-input" [(ngModel)]="filtroTipoInteraccion"
+                            (change)="cargarInteracciones()" style="min-width:200px">
+                        <option value="">Todos los tipos</option>
+                        <option value="VISITA_AGENDADA">📅 Visitas agendadas</option>
+                        <option value="FAVORITO_GUARDADO">⭐ Favoritos guardados</option>
+                        <option value="INTENCION_COMPRA">💰 Intenciones de compra</option>
+                        <option value="INTENCION_RENTA">🔑 Intenciones de renta</option>
+                        <option value="INMUEBLE_CONSULTADO">👁 Inmuebles consultados</option>
+                        <option value="COMPRA_REALIZADA">🏠 Compras realizadas</option>
+                        <option value="ARRIENDO_REALIZADO">📄 Arriendos realizados</option>
+                    </select>
+                    <button class="btn btn-primary" (click)="abrirAgendarVisita()">📅 Agendar visita</button>
+                    <button class="btn btn-secondary" (click)="abrirIntencion()">💰 Declarar intención</button>
+                </div>
+            </div>
+
+            <div *ngIf="loadingInteracciones" class="loading"><div class="spinner"></div></div>
+
+            <div *ngIf="!loadingInteracciones && interacciones.length === 0" class="empty-state card">
+                <span class="icon">📊</span>
+                <h3>Sin interacciones</h3>
+                <p>Agenda una visita, guarda favoritos o declara tu intención de compra o renta</p>
+                <div style="display:flex;gap:0.75rem;justify-content:center;margin-top:0.75rem">
+                    <button class="btn btn-primary" (click)="abrirAgendarVisita()">📅 Agendar visita</button>
+                    <button class="btn btn-secondary" (click)="abrirIntencion()">💰 Declarar intención</button>
+                </div>
+            </div>
+
+            <div class="interacciones-list" *ngIf="!loadingInteracciones && interacciones.length > 0">
+                <div *ngFor="let item of interacciones" class="interaccion-card card">
+                    <div class="int-header">
+                        <span class="badge" [class]="tipoInteraccionBadge(item.tipoInteraccion)">
+                            {{ tipoInteraccionLabel(item.tipoInteraccion) }}
+                        </span>
+                        <span class="int-fecha text-muted">{{ item.fecha }}</span>
+                    </div>
+                    <p class="int-detalle">{{ item.detalle }}</p>
+                    <div *ngIf="item.inmueble" class="int-inmueble">
+                        <span class="badge badge-blue">{{ item.inmueble.tipoInmueble }}</span>
+                        <span style="font-size:0.8rem">{{ item.inmueble.direccion }}, {{ item.inmueble.ciudad }}</span>
+                        <span style="color:var(--gold);font-size:0.8rem;font-weight:600;margin-left:auto">
+                            {{ formatPrice(item.inmueble.precio) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </main>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: AGENDAR VISITA
+══════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showVisitaModal" (click)="showVisitaModal=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>📅 Agendar Visita</h2>
+            <button class="modal-close" (click)="showVisitaModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem">
+                Selecciona el inmueble que quieres visitar y un asesor te confirmará la cita.
+            </p>
+            <div class="form-grid-2">
+                <div class="form-group" style="grid-column:1/-1">
+                    <label class="form-label">Inmueble *</label>
+                    <select class="form-control" [(ngModel)]="visitaForm.codigoInmueble">
+                        <option value="">Seleccionar inmueble...</option>
+                        <option *ngFor="let inm of inmuebles" [value]="inm.codigo">
+                            {{ inm.codigo }} — {{ inm.direccion }}, {{ inm.ciudad }}
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Fecha preferida *</label>
+                    <input type="date" class="form-control" [(ngModel)]="visitaForm.fecha">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Hora preferida *</label>
+                    <input type="time" class="form-control" [(ngModel)]="visitaForm.hora">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Asesor (opcional)</label>
+                    <select class="form-control" [(ngModel)]="visitaForm.idAsesor">
+                        <option value="">Asignar automáticamente</option>
+                        <option *ngFor="let a of asesores" [value]="a.id">{{ a.nombre }}</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Observaciones</label>
+                    <input class="form-control" [(ngModel)]="visitaForm.observaciones"
+                           placeholder="¿Algo que deba saber el asesor?">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showVisitaModal=false">Cancelar</button>
+                <button class="btn btn-primary" (click)="confirmarVisita()" [disabled]="submittingVisita">
+                    {{ submittingVisita ? 'Agendando...' : '📅 Confirmar visita' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: INTENCIÓN DE COMPRA / RENTA
+══════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showIntencionModal" (click)="showIntencionModal=false">
+    <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h2>{{ intencionForm.tipo === 'INTENCION_COMPRA' ? '💰 Intención de Compra' : '🔑 Intención de Renta' }}</h2>
+            <button class="modal-close" (click)="showIntencionModal=false">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem">
+                Declara formalmente tu interés. Un asesor se comunicará contigo para avanzar en el proceso.
+            </p>
+            <div class="form-grid-2">
+                <div class="form-group">
+                    <label class="form-label">Tipo de intención</label>
+                    <select class="form-control" [(ngModel)]="intencionForm.tipo">
+                        <option value="INTENCION_COMPRA">💰 Quiero comprar</option>
+                        <option value="INTENCION_RENTA">🔑 Quiero rentar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Inmueble *</label>
+                    <select class="form-control" [(ngModel)]="intencionForm.codigoInmueble">
+                        <option value="">Seleccionar...</option>
+                        <option *ngFor="let inm of inmuebles" [value]="inm.codigo">
+                            {{ inm.codigo }} — {{ inm.direccion }}
+                        </option>
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column:1/-1">
+                    <label class="form-label">Mensaje para el asesor</label>
+                    <input class="form-control" [(ngModel)]="intencionForm.detalle"
+                           placeholder="ej. Estoy listo para iniciar el proceso, tengo pre-aprobación bancaria...">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-ghost" (click)="showIntencionModal=false">Cancelar</button>
+                <button class="btn btn-primary" (click)="confirmarIntencion()" [disabled]="submittingIntencion">
+                    {{ submittingIntencion ? 'Registrando...' : '✓ Registrar intención' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container">
+    <div *ngFor="let toast of []" class="toast"></div>
 </div>

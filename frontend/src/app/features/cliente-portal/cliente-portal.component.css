@@ -1,4 +1,4 @@
-/* src/app/features/cliente-portal/cliente-portal.component.scss */
+/* src/app/features/cliente-portal/cliente-portal.component.css */
 .portal-shell {
     min-height: 100vh;
     background: var(--bg-primary);
@@ -33,8 +33,8 @@
     border-radius: var(--radius-sm); color: var(--text-secondary);
     font-family: 'DM Sans', sans-serif; font-size: 0.8rem;
     padding: 0.35rem 0.8rem; cursor: pointer; transition: all var(--transition);
-    &:hover { border-color: var(--accent-rose); color: var(--accent-rose); }
 }
+.btn-logout:hover { border-color: var(--accent-rose); color: var(--accent-rose); }
 
 /* Nav */
 .portal-nav {
@@ -48,9 +48,9 @@
     color: var(--text-secondary); padding: 1rem 1.25rem;
     border-bottom: 2px solid transparent; margin-bottom: -1px;
     white-space: nowrap; transition: all var(--transition);
-    &:hover { color: var(--text-primary); }
-    &.active { color: var(--gold); border-bottom-color: var(--gold); }
 }
+.pnav-btn:hover { color: var(--text-primary); }
+.pnav-btn.active { color: var(--gold); border-bottom-color: var(--gold); }
 
 /* Main */
 .portal-main { flex: 1; padding: 2rem; max-width: 1200px; width: 100%; margin: 0 auto; }
@@ -58,7 +58,9 @@
 .portal-section-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
-    h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--text-primary); }
+}
+.portal-section-header h2 {
+    font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--text-primary);
 }
 
 .search-input {
@@ -67,9 +69,9 @@
     font-family: 'DM Sans', sans-serif; font-size: 0.875rem;
     padding: 0.5rem 0.85rem; outline: none; min-width: 220px;
     transition: border-color var(--transition);
-    &:focus { border-color: var(--gold); }
-    &::placeholder { color: var(--text-muted); }
 }
+.search-input:focus { border-color: var(--gold); }
+.search-input::placeholder { color: var(--text-muted); }
 
 /* Grid inmuebles */
 .inmuebles-grid {
@@ -79,8 +81,8 @@
 .inm-card {
     display: flex; flex-direction: column; gap: 0.6rem;
     transition: all var(--transition);
-    &:hover { transform: translateY(-3px); box-shadow: var(--shadow-gold); border-color: var(--gold-dim); }
 }
+.inm-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-gold); border-color: var(--gold-dim); }
 .inm-card-top { display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .inm-dir { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); margin: 0; }
 .inm-ubicacion { font-size: 0.8rem; margin: 0; }
@@ -89,34 +91,69 @@
     font-family: 'Playfair Display', serif; font-size: 1.1rem;
     font-weight: 700; color: var(--gold); margin-top: auto;
 }
+
+/* Botones de acción en tarjeta inmueble */
+.inm-acciones { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.25rem; }
+
 .btn-fav {
     background: transparent; border: 1px solid var(--border-light);
     border-radius: var(--radius-sm); color: var(--text-secondary);
-    font-family: 'DM Sans', sans-serif; font-size: 0.8rem;
-    padding: 0.4rem 0.75rem; cursor: pointer; transition: all var(--transition);
-    &:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+    font-family: 'DM Sans', sans-serif; font-size: 0.75rem;
+    padding: 0.35rem 0.65rem; cursor: pointer; transition: all var(--transition);
+    flex: 1;
 }
+.btn-fav:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+.btn-fav.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+.btn-accion {
+    background: transparent; border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm); color: var(--text-secondary);
+    font-family: 'DM Sans', sans-serif; font-size: 0.75rem;
+    padding: 0.35rem 0.65rem; cursor: pointer; transition: all var(--transition);
+    flex: 1;
+}
+.btn-visita:hover {
+    border-color: var(--accent-blue); color: var(--accent-blue);
+    background: rgba(74,124,220,0.1);
+}
+.btn-intencion:hover {
+    border-color: var(--accent-amber); color: var(--accent-amber);
+    background: rgba(245,158,11,0.1);
+}
+
+/* Interacciones */
+.interacciones-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.interaccion-card {
+    display: flex; flex-direction: column; gap: 0.5rem;
+    transition: all var(--transition);
+}
+.interaccion-card:hover { border-color: var(--border-light); }
+
+.int-header { display: flex; align-items: center; gap: 0.75rem; justify-content: space-between; }
+.int-fecha { font-size: 0.75rem; }
+.int-detalle { font-size: 0.875rem; color: var(--text-primary); }
+.int-inmueble {
+    display: flex; align-items: center; gap: 0.5rem;
+    background: var(--bg-secondary); border-radius: var(--radius-sm);
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem; color: var(--text-secondary);
+}
+
+/* Aviso vinculo */
+.aviso-vinculo {
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    background: var(--bg-elevated); border: 1px solid var(--border-light);
+    border-radius: var(--radius-md); padding: 1rem; text-align: left; max-width: 420px;
+}
+.aviso-vinculo .aviso-icon { font-size: 1.5rem; flex-shrink: 0; }
+.aviso-vinculo strong { display: block; color: var(--gold); margin-bottom: 0.3rem; font-size: 0.9rem; }
+.aviso-vinculo p { font-size: 0.82rem; color: var(--text-secondary); margin: 0.2rem 0; }
+.aviso-vinculo code { color: var(--gold); background: var(--gold-dim); padding: 0.1rem 0.4rem; border-radius: 4px; }
 
 @media (max-width: 768px) {
     .portal-topbar { padding: 1rem; }
     .portal-main { padding: 1rem; }
     .topbar-user .user-info { display: none; }
-}
-
-.aviso-vinculo {
-    display: flex; gap: 0.75rem; align-items: flex-start;
-    background: var(--bg-elevated);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    padding: 1rem; text-align: left; max-width: 420px;
-    .aviso-icon { font-size: 1.5rem; flex-shrink: 0; }
-    strong { display: block; color: var(--gold); margin-bottom: 0.3rem; font-size: 0.9rem; }
-    p { font-size: 0.82rem; color: var(--text-secondary); margin: 0.2rem 0; }
-    code { color: var(--gold); background: var(--gold-dim); padding: 0.1rem 0.4rem; border-radius: 4px; }
-}
-
-.btn-fav.active {
-    border-color: var(--gold);
-    color: var(--gold);
-    background: var(--gold-dim);
+    .inmuebles-grid { grid-template-columns: 1fr; }
 }

@@ -5,6 +5,20 @@ import { Observable } from 'rxjs';
 import { Cliente, ClienteDTO, Inmueble } from '../models';
 import { environment } from '../../../environments/environment';
 
+export interface Interaccion {
+  id: string;
+  fecha: string;
+  tipoInteraccion: string;
+  detalle: string;
+  inmueble?: Inmueble;
+}
+
+export interface IntencionDTO {
+  codigoInmueble: string;
+  tipo: 'INTENCION_COMPRA' | 'INTENCION_RENTA';
+  detalle?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ClienteService {
   private base = `${environment.apiUrl}/api`;
@@ -40,8 +54,22 @@ export class ClienteService {
   obtenerHistorial(id: string): Observable<Inmueble[]> {
     return this.http.get<Inmueble[]>(`${this.base}/clientes/${id}/historial`);
   }
-
   eliminarFavorito(id: string, codigoInmueble: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/clientes/${id}/favoritos/${codigoInmueble}`);
+  }
+
+  // ── Nuevos: interacciones ─────────────────────────────────────────
+  obtenerInteracciones(id: string, tipo?: string): Observable<Interaccion[]> {
+    let params = new HttpParams();
+    if (tipo) params = params.set('tipo', tipo);
+    return this.http.get<Interaccion[]>(`${this.base}/clientes/${id}/interacciones`, { params });
+  }
+
+  registrarIntencion(id: string, dto: IntencionDTO): Observable<Interaccion> {
+    return this.http.post<Interaccion>(`${this.base}/clientes/${id}/intencion`, dto);
+  }
+
+  agendarVisitaDesdePortal(id: string, dto: any): Observable<Interaccion> {
+    return this.http.post<Interaccion>(`${this.base}/clientes/${id}/visitas`, dto);
   }
 }

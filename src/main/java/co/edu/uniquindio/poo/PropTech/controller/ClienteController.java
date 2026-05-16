@@ -1,10 +1,15 @@
 package co.edu.uniquindio.poo.PropTech.controller;
 
 import co.edu.uniquindio.poo.PropTech.model.dto.ClienteDTO;
+import co.edu.uniquindio.poo.PropTech.model.dto.IntencionDTO;
+import co.edu.uniquindio.poo.PropTech.model.dto.VisitaDTO;
 import co.edu.uniquindio.poo.PropTech.model.entity.Cliente;
 import co.edu.uniquindio.poo.PropTech.model.entity.Inmueble;
+import co.edu.uniquindio.poo.PropTech.model.entity.Interaccion;
+import co.edu.uniquindio.poo.PropTech.model.enums.TipoInteraccion;
 import co.edu.uniquindio.poo.PropTech.service.ClienteService;
 import co.edu.uniquindio.poo.PropTech.service.InmuebleService;
+import co.edu.uniquindio.poo.PropTech.service.PlataformaBeta;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,34 +22,30 @@ public class ClienteController {
 
     private final ClienteService  clienteService;
     private final InmuebleService inmuebleService;
+    private final PlataformaBeta  plataformaBeta;
 
-    public ClienteController(ClienteService clienteService, InmuebleService inmuebleService) {
+    public ClienteController(ClienteService clienteService,
+                             InmuebleService inmuebleService,
+                             PlataformaBeta plataformaBeta) {
         this.clienteService  = clienteService;
         this.inmuebleService = inmuebleService;
+        this.plataformaBeta  = plataformaBeta;
     }
 
     // ----------------------------------------------------------------
-    // POST /api/clientes
+    // CRUD
     // ----------------------------------------------------------------
+
     @PostMapping
     public ResponseEntity<Cliente> registrar(@RequestBody ClienteDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(clienteService.registrar(dto));
     }
 
-    // ----------------------------------------------------------------
-    // GET /api/clientes/{id}
-    // ----------------------------------------------------------------
     @GetMapping("/{id}")
     public ResponseEntity<Cliente> buscarPorId(@PathVariable String id) {
         return ResponseEntity.ok(clienteService.buscarPorId(id));
     }
 
-    // ----------------------------------------------------------------
-    // GET /api/clientes
-    // ?ordenarPorPresupuesto=true  → recorrido inOrder del AVL
-    // ?presupuestoMax=500000       → filtra por presupuesto máximo
-    // (sin params)                 → lista completa
-    // ----------------------------------------------------------------
     @GetMapping
     public ResponseEntity<List<Cliente>> listar(
             @RequestParam(required = false, defaultValue = "false") boolean ordenarPorPresupuesto,
@@ -59,9 +60,6 @@ public class ClienteController {
         return ResponseEntity.ok(clienteService.obtenerTodos());
     }
 
-    // ----------------------------------------------------------------
-    // PUT /api/clientes/{id}
-    // ----------------------------------------------------------------
     @PutMapping("/{id}")
     public ResponseEntity<Void> actualizar(@PathVariable String id,
                                            @RequestBody ClienteDTO dto) {
@@ -69,9 +67,6 @@ public class ClienteController {
         return ResponseEntity.noContent().build();
     }
 
-    // ----------------------------------------------------------------
-    // DELETE /api/clientes/{id}
-    // ----------------------------------------------------------------
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable String id) {
         clienteService.eliminar(id);
@@ -79,9 +74,9 @@ public class ClienteController {
     }
 
     // ----------------------------------------------------------------
-    // POST /api/clientes/{id}/favoritos/{codigoInmueble}
-    // Marca un inmueble como favorito para el cliente.
+    // Favoritos
     // ----------------------------------------------------------------
+
     @PostMapping("/{id}/favoritos/{codigoInmueble}")
     public ResponseEntity<Void> marcarFavorito(@PathVariable String id,
                                                @PathVariable String codigoInmueble) {
@@ -90,22 +85,13 @@ public class ClienteController {
         return ResponseEntity.noContent().build();
     }
 
-    // ----------------------------------------------------------------
-    // POST /api/clientes/{id}/descartados/{codigoInmueble}
-    // Registra un inmueble como descartado por el cliente.
-    // ----------------------------------------------------------------
-    @PostMapping("/{id}/descartados/{codigoInmueble}")
-    public ResponseEntity<Void> descartarInmueble(@PathVariable String id,
-                                                  @PathVariable String codigoInmueble) {
-        Inmueble inmueble = inmuebleService.buscarPorCodigo(codigoInmueble);
-        clienteService.registrarInmuebleDescartado(id, inmueble);
+    @DeleteMapping("/{id}/favoritos/{codigoInmueble}")
+    public ResponseEntity<Void> eliminarFavorito(@PathVariable String id,
+                                                 @PathVariable String codigoInmueble) {
+        clienteService.eliminarFavorito(id, codigoInmueble);
         return ResponseEntity.noContent().build();
     }
 
-    // ----------------------------------------------------------------
-    // GET /api/clientes/{id}/favoritos
-    // Devuelve la lista de inmuebles guardados del cliente.
-    // ----------------------------------------------------------------
     @GetMapping("/{id}/favoritos")
     public ResponseEntity<List<Inmueble>> obtenerFavoritos(@PathVariable String id) {
         Cliente cliente = clienteService.buscarPorId(id);
@@ -114,10 +100,14 @@ public class ClienteController {
         return ResponseEntity.ok(favoritos);
     }
 
-    // ----------------------------------------------------------------
-    // GET /api/clientes/{id}/historial
-    // Devuelve el historial completo de inmuebles consultados.
-    // ----------------------------------------------------------------
+    @PostMapping("/{id}/descartados/{codigoInmueble}")
+    public ResponseEntity<Void> descartarInmueble(@PathVariable String id,
+                                                  @PathVariable String codigoInmueble) {
+        Inmueble inmueble = inmuebleService.buscarPorCodigo(codigoInmueble);
+        clienteService.registrarInmuebleDescartado(id, inmueble);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/historial")
     public ResponseEntity<List<Inmueble>> obtenerHistorial(@PathVariable String id) {
         Cliente cliente = clienteService.buscarPorId(id);
@@ -126,10 +116,77 @@ public class ClienteController {
         return ResponseEntity.ok(historial);
     }
 
-    @DeleteMapping("/{id}/favoritos/{codigoInmueble}")
-    public ResponseEntity<Void> eliminarFavorito(@PathVariable String id,
-                                                 @PathVariable String codigoInmueble) {
-        clienteService.eliminarFavorito(id, codigoInmueble);
-        return ResponseEntity.noContent().build();
+    // ----------------------------------------------------------------
+    // Historial de interacciones
+    // GET /api/clientes/{id}/interacciones
+    // GET /api/clientes/{id}/interacciones?tipo=INTENCION_COMPRA
+    // ----------------------------------------------------------------
+
+    @GetMapping("/{id}/interacciones")
+    public ResponseEntity<List<Interaccion>> obtenerInteracciones(
+            @PathVariable String id,
+            @RequestParam(required = false) TipoInteraccion tipo) {
+
+        if (tipo != null) {
+            return ResponseEntity.ok(clienteService.obtenerHistorialPorTipo(id, tipo));
+        }
+        return ResponseEntity.ok(clienteService.obtenerHistorial(id));
+    }
+
+    // ----------------------------------------------------------------
+    // Intención de compra o renta
+    // POST /api/clientes/{id}/intencion
+    // Body: { "codigoInmueble": "...", "tipo": "INTENCION_COMPRA", "detalle": "..." }
+    // ----------------------------------------------------------------
+
+    @PostMapping("/{id}/intencion")
+    public ResponseEntity<Interaccion> registrarIntencion(
+            @PathVariable String id,
+            @RequestBody IntencionDTO dto) {
+
+        if (dto.getTipo() != TipoInteraccion.INTENCION_COMPRA
+                && dto.getTipo() != TipoInteraccion.INTENCION_RENTA) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Inmueble inmueble = inmuebleService.buscarPorCodigo(dto.getCodigoInmueble());
+        String descripcion = (dto.getTipo() == TipoInteraccion.INTENCION_COMPRA
+                ? "Intención de compra"
+                : "Intención de renta")
+                + " para " + inmueble.getDireccion()
+                + ", " + inmueble.getCiudad()
+                + (dto.getDetalle() != null && !dto.getDetalle().isBlank()
+                ? " — " + dto.getDetalle() : "");
+
+        Interaccion interaccion = clienteService.registrarInteraccion(id, dto.getTipo(), inmueble, descripcion);
+        // También registrar en historial de consultas
+        clienteService.buscarPorId(id).getInmueblesConsultados().addLast(inmueble);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(interaccion);
+    }
+
+    // ----------------------------------------------------------------
+    // Agendar visita desde el portal del cliente
+    // POST /api/clientes/{id}/visitas
+    // ----------------------------------------------------------------
+
+    @PostMapping("/{id}/visitas")
+    public ResponseEntity<Interaccion> agendarVisitaDesdePortal(
+            @PathVariable String id,
+            @RequestBody VisitaDTO dto) {
+
+        dto.setIdCliente(id);
+        // Delegar a PlataformaBeta que orquesta todo y actualiza el grafo
+        plataformaBeta.agendarVisita(dto);
+
+        Inmueble inmueble = inmuebleService.buscarPorCodigo(dto.getCodigoInmueble());
+        String descripcion = "Visita agendada para el " + dto.getFecha()
+                + " a las " + dto.getHora()
+                + " en " + inmueble.getDireccion() + ", " + inmueble.getCiudad();
+
+        Interaccion interaccion = clienteService.registrarInteraccion(
+                id, TipoInteraccion.VISITA_AGENDADA, inmueble, descripcion);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(interaccion);
     }
 }
