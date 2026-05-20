@@ -125,10 +125,10 @@ export class ClientePortalComponent implements OnInit {
     cargarHistorialYFavoritos() {
         if (!this.clienteBackendId) return;
         this.clienteService.obtenerFavoritos(this.clienteBackendId).subscribe({
-            next: d => this.favoritos = d, error: () => {}
+            next: d => {this.favoritos = d;this.construirContextoChatCliente();}, error: () => {}
         });
         this.clienteService.obtenerHistorial(this.clienteBackendId).subscribe({
-            next: d => this.historial = d, error: () => {}
+            next: d => {this.historial = d;this.construirContextoChatCliente();}, error: () => {}
         });
     }
 
@@ -147,7 +147,7 @@ export class ClientePortalComponent implements OnInit {
         this.loadingRecomendaciones = true;
         this.recomendaciones = [];
         this.plataformaService.generarRecomendaciones(this.clienteBackendId).subscribe({
-            next: d => { this.recomendaciones = d; this.loadingRecomendaciones = false; },
+            next: d => { this.recomendaciones = d; this.loadingRecomendaciones = false; this.construirContextoChatCliente(); },
             error: (e: any) => { this.toast.error(e.message || 'Error al cargar recomendaciones'); this.loadingRecomendaciones = false; }
         });
     }

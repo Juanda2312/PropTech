@@ -19,6 +19,8 @@ export interface ContextoChatbot {
         asesores: number;
         visitasPendientes: number;
         alertasAbiertas: number;
+        inmueblesDisponibles?: number;
+        inmueblesNoDisponibles?: number;
     };
     alertasCriticas?: { tipoAlerta: string; descripcion: string; nivel: string }[];
     rankingAsesores?: { nombre: string; especialidadZona: string }[];
@@ -63,7 +65,7 @@ export class ChatbotService {
         const body = {
             model: this.MODEL,
             messages,
-            max_tokens: 512,
+            max_tokens: 2048,
             temperature: 0.7
         };
 
@@ -107,14 +109,14 @@ Sé conciso, profesional y útil. Responde en español. Usa emojis ocasionalment
 Eres el asistente del panel de ADMINISTRACIÓN de PropTech. Tienes acceso a los siguientes datos del dashboard en tiempo real:
 
 📊 ESTADÍSTICAS ACTUALES:
-- Inmuebles registrados: ${ctx.stats?.inmuebles ?? 0}
+- Inmuebles registrados: ${ctx.stats?.inmuebles ?? 0} (${ctx.stats?.inmueblesDisponibles ?? '?'} disponibles, ${ctx.stats?.inmueblesNoDisponibles ?? '?'} no disponibles)
 - Clientes activos: ${ctx.stats?.clientes ?? 0}
 - Asesores: ${ctx.stats?.asesores ?? 0}
-- Visitas pendientes en cola: ${ctx.stats?.visitasPendientes ?? 0}
+- Visitas en estado PENDIENTE: ${ctx.stats?.visitasPendientes ?? 0}
 - Alertas abiertas: ${ctx.stats?.alertasAbiertas ?? 0}
 
-🚨 ALERTAS RECIENTES (${ctx.alertasCriticas?.length ?? 0}):
-${ctx.alertasCriticas?.map(a => `- [${a.nivel}] ${a.tipoAlerta}: ${a.descripcion}`).join('\n') ?? 'Sin alertas críticas'}
+🚨 TODAS LAS ALERTAS ABIERTAS (${ctx.alertasCriticas?.length ?? 0} de ${ctx.stats?.alertasAbiertas ?? 0} totales):
+${ctx.alertasCriticas?.map(a => `- [${a.nivel}] ${a.tipoAlerta}: ${a.descripcion}`).join('\n') ?? 'Sin alertas'}
 
 🏆 RANKING ASESORES (top):
 ${ctx.rankingAsesores?.map((a, i) => `${i + 1}. ${a.nombre} — Zona: ${a.especialidadZona}`).join('\n') ?? 'Sin datos'}

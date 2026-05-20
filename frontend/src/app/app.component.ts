@@ -86,23 +86,32 @@ export class AppComponent implements OnInit {
       clientes: this.clienteService.listar(),
       asesores: this.asesorService.listar(),
       visitasPend: this.visitaService.totalPendientes(),
+      visitasPendLista: this.visitaService.listar({ estado: 'PENDIENTE' }), // ← agregar
       alertas: this.alertaService.listar({ abiertas: true }),
       rankingAsesores: this.plataformaService.rankingAsesores(),
       rankingZonas: this.plataformaService.rankingZonas()
     }).subscribe({
       next: data => {
+        const inmueblesDisponibles = data.inmuebles.filter(i => i.disponibilidad).length;
+        const inmueblesNoDisponibles = data.inmuebles.filter(i => !i.disponibilidad).length;
+
         this.contextoChat = {
           rol: 'ADMIN',
           stats: {
             inmuebles: data.inmuebles.length,
             clientes: data.clientes.length,
             asesores: data.asesores.length,
-            visitasPendientes: data.visitasPend.totalPendientes,
-            alertasAbiertas: data.alertas.length
+            visitasPendientes: data.visitasPendLista.length,
+            alertasAbiertas: data.alertas.length,
+            inmueblesDisponibles: data.inmuebles.filter(i => i.disponibilidad).length,
+            inmueblesNoDisponibles: data.inmuebles.filter(i => !i.disponibilidad).length
           },
           alertasCriticas: data.alertas
-              .filter(a => a.nivel === 'CRITICO' || a.nivel === 'ALTO')
-              .slice(0, 5)
+              .sort((a, b) => {
+                const orden: Record<string, number> = { CRITICO: 0, ALTO: 1, MEDIO: 2, BAJO: 3 };
+                return (orden[a.nivel] ?? 4) - (orden[b.nivel] ?? 4);
+              })
+              .slice(0, 20)
               .map(a => ({ tipoAlerta: a.tipoAlerta, descripcion: a.descripcion, nivel: a.nivel })),
           rankingAsesores: data.rankingAsesores.slice(0, 5).map(a => ({
             nombre: a.nombre,
@@ -112,13 +121,25 @@ export class AppComponent implements OnInit {
               .map(([zona, visitas]) => ({ zona, visitas }))
               .sort((a, b) => b.visitas - a.visitas)
               .slice(0, 5),
+          visitasPendientes: data.visitasPendLista.slice(0, 10).map(v => ({
+            idVisita: v.idVisita,
+            cliente: { nombre: v.cliente?.nombre },
+            inmueble: { direccion: v.inmueble?.direccion },
+            fecha: v.fecha
+          })),
           inmueblesRecientes: data.inmuebles.slice(0, 8).map(i => ({
             codigo: i.codigo,
             direccion: i.direccion,
             ciudad: i.ciudad,
             precio: i.precio,
             disponibilidad: i.disponibilidad
-          }))
+          })),
+          // Campos extra para el prompt — los pasamos en inmueblesRecientes no alcanza
+          // así que los añadimos al stats como campos adicionales usando cast
+          ...({
+            inmueblesDisponibles,
+            inmueblesNoDisponibles
+          } as any)
         };
       },
       error: () => {}
