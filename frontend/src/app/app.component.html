@@ -93,6 +93,11 @@
   <router-outlet></router-outlet>
 </div>
 
+<!-- Chatbot flotante — solo en rutas con shell (admin) -->
+<app-chatbot *ngIf="mostrarShell && contextoChat" [contexto]="contextoChat"></app-chatbot>
+
+
+
 <!-- Toast container -->
 <div class="toast-container">
   <div *ngFor="let toast of toasts" class="toast" [class]="'toast-' + toast.type">
@@ -100,3 +105,4 @@
     <span>{{ toast.message }}</span>
   </div>
 </div>
+

@@ -9,6 +9,11 @@ import { catchError } from 'rxjs/operators';
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+        // No interceptar requests a Gemini
+        if (req.url.includes('generativelanguage.googleapis.com')) {
+            return next.handle(req);
+        }
+
         return next.handle(req).pipe(
             catchError((error: HttpErrorResponse) => {
                 let msg = 'Error desconocido';

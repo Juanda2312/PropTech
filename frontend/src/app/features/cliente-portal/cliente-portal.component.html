@@ -449,6 +449,8 @@
             </div>
         </div>
     </div>
+    <!-- Al final del template, justo antes de cerrar el último </div> principal -->
+    <app-chatbot *ngIf="contextoChat" [contexto]="contextoChat"></app-chatbot>
 </div>
 
 <!-- Toast container -->

@@ -10,13 +10,15 @@ import { AsesorService } from '../../core/services/asesor.service';
 import { PlataformaService } from '../../core/services/plataforma.service';
 import { ToastService } from '../../core/services/toast.service';
 import { Inmueble, Asesor, Recomendacion } from '../../core/models';
+import { ChatbotComponent } from '../../shared/chatbot/chatbot.component';
+import { ContextoChatbot } from '../../core/services/chatbot.service';
 
 type Seccion = 'inmuebles' | 'visitas' | 'favoritos' | 'historial' | 'interacciones' | 'recomendaciones';
 
 @Component({
     selector: 'app-cliente-portal',
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule,ChatbotComponent],
     templateUrl: './cliente-portal.component.html',
     styleUrls: ['./cliente-portal.component.css']
 })
@@ -35,6 +37,7 @@ export class ClientePortalComponent implements OnInit {
     filtroTexto = '';
     clienteBackendId = '';
     vinculado = false;
+    contextoChat: ContextoChatbot | null = null;
 
     // Registro de inmuebles ya "consultados" en esta sesión para no duplicar
     private inmueblesConsultadosEnSesion = new Set<string>();
@@ -109,6 +112,7 @@ export class ClientePortalComponent implements OnInit {
     cargarTodo() {
         this.cargarInmuebles();
         this.cargarHistorialYFavoritos();
+        this.construirContextoChatCliente();
     }
 
     cargarInmuebles() {
@@ -351,5 +355,60 @@ export class ClientePortalComponent implements OnInit {
     cerrarSesion() {
         this.authService.logout();
         this.router.navigate(['/login']);
+    }
+
+    construirContextoChatCliente() {
+        if (!this.clienteBackendId) return;
+
+        this.contextoChat = {
+            rol: 'CLIENTE',
+            nombreCliente: this.usuario?.nombre ?? '',
+            presupuesto: 0,
+            tipoInmuebleDeseado: '',
+            estadoBusqueda: '',
+            inmuebles: this.inmuebles.map(i => ({
+                codigo: i.codigo,
+                direccion: i.direccion,
+                ciudad: i.ciudad,
+                tipoInmueble: i.tipoInmueble,
+                finalidad: i.finalidad,
+                precio: i.precio,
+                habitaciones: i.habitaciones,
+                disponibilidad: i.disponibilidad
+            })),
+            favoritos: this.favoritos.map(f => ({
+                codigo: f.codigo,
+                direccion: f.direccion,
+                ciudad: f.ciudad,
+                precio: f.precio
+            })),
+            recomendaciones: this.recomendaciones.map(r => ({
+                inmueble: r.inmueble ? {
+                    direccion: r.inmueble.direccion,
+                    ciudad: r.inmueble.ciudad,
+                    precio: r.inmueble.precio,
+                    tipoInmueble: r.inmueble.tipoInmueble
+                } : { direccion: '', ciudad: '', precio: 0, tipoInmueble: '' },
+                puntaje: r.puntaje,
+                criterio: r.criterio
+            })),
+            historial: this.historial.map(h => ({
+                direccion: h.direccion,
+                ciudad: h.ciudad,
+                tipoInmueble: h.tipoInmueble
+            }))
+        };
+
+        // Enriquecer con datos del perfil del cliente
+        this.clienteService.buscarPorId(this.clienteBackendId).subscribe({
+            next: cliente => {
+                if (this.contextoChat) {
+                    this.contextoChat.presupuesto = cliente.presupuesto;
+                    this.contextoChat.tipoInmuebleDeseado = cliente.tipoInmuebleDeseado;
+                    this.contextoChat.estadoBusqueda = cliente.estadoBusqueda;
+                }
+            },
+            error: () => {}
+        });
     }
 }

@@ -1,0 +1,120 @@
+<!-- src/app/shared/chatbot/chatbot.component.html -->
+
+<!-- Botón flotante -->
+<div class="chat-fab" [class.active]="abierto" (click)="toggleChat()" title="PropBot — Asistente IA">
+    <div class="fab-icon" *ngIf="!abierto">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.96 9.96 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" fill="currentColor" opacity="0.15"/>
+            <path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.96 9.96 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+    </div>
+    <div class="fab-icon" *ngIf="abierto">
+        <svg viewBox="0 0 24 24" fill="none">
+            <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+    </div>
+    <span class="fab-label" *ngIf="!abierto">PropBot</span>
+</div>
+
+<!-- Ventana del chat -->
+<div class="chat-window" [class.open]="abierto">
+
+    <!-- Header -->
+    <div class="chat-header">
+        <div class="chat-header-info">
+            <div class="bot-avatar">
+                <svg viewBox="0 0 32 32" fill="none" width="20" height="20">
+                    <rect width="32" height="32" rx="10" fill="currentColor" opacity="0.15"/>
+                    <path d="M10 14h12M10 18h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="16" cy="10" r="2" fill="currentColor"/>
+                </svg>
+            </div>
+            <div>
+                <span class="bot-name">PropBot</span>
+                <span class="bot-status">
+          <span class="status-dot" [class.thinking]="cargando"></span>
+                    {{ cargando ? 'Escribiendo...' : 'En línea' }}
+        </span>
+            </div>
+        </div>
+        <div class="chat-header-actions">
+            <button class="header-btn" (click)="limpiarChat()" title="Nueva conversación">
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M3 3v5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+            <button class="header-btn" (click)="toggleChat()" title="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" width="14" height="14">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mensajes -->
+    <div class="chat-messages" #messagesContainer>
+        <div *ngFor="let msg of mensajes; let i = index"
+             class="message-wrapper"
+             [class.user-wrapper]="msg.rol === 'user'"
+             [class.bot-wrapper]="msg.rol === 'assistant'">
+
+            <div *ngIf="msg.rol === 'assistant'" class="msg-avatar">
+                <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                    <path d="M6 9h8M6 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M10 2C5.58 2 2 5.58 2 10c0 1.22.28 2.38.77 3.41L2 18l4.59-0.77A7.94 7.94 0 0 0 10 18c4.42 0 8-3.58 8-8s-3.58-8-8-8z" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+            </div>
+
+            <div class="message" [class.user-message]="msg.rol === 'user'" [class.bot-message]="msg.rol === 'assistant'">
+                <div class="message-content" [innerHTML]="formatearMarkdown(msg.contenido)"></div>
+                <span class="message-time">{{ formatearHora(msg.timestamp) }}</span>
+            </div>
+        </div>
+
+        <!-- Indicador de escritura -->
+        <div *ngIf="cargando" class="message-wrapper bot-wrapper">
+            <div class="msg-avatar">
+                <svg viewBox="0 0 20 20" fill="none" width="14" height="14">
+                    <path d="M6 9h8M6 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M10 2C5.58 2 2 5.58 2 10c0 1.22.28 2.38.77 3.41L2 18l4.59-.77A7.94 7.94 0 0 0 10 18c4.42 0 8-3.58 8-8s-3.58-8-8-8z" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+            </div>
+            <div class="message bot-message typing-indicator">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sugerencias rápidas -->
+    <div class="chat-suggestions" *ngIf="mensajes.length <= 1 && !cargando">
+        <button *ngFor="let s of sugerencias"
+                class="suggestion-chip"
+                (click)="usarSugerencia(s)">
+            {{ s }}
+        </button>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-footer">
+        <div class="chat-input-wrapper">
+            <input
+                    class="chat-input"
+                    type="text"
+                    [(ngModel)]="inputTexto"
+                    (keyup.enter)="enviar()"
+                    placeholder="Escribe tu pregunta..."
+                    [disabled]="cargando"
+                    maxlength="400"
+            />
+            <button class="send-btn" (click)="enviar()" [disabled]="!inputTexto.trim() || cargando" title="Enviar">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16">
+                    <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+        <p class="chat-disclaimer">Asistente IA · Solo temas inmobiliarios</p>
+    </div>
+</div>
