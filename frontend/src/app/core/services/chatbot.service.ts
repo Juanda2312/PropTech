@@ -1,7 +1,7 @@
 // src/app/core/services/chatbot.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, from } from 'rxjs';
+import { Observable } from 'rxjs';
 
 export type RolChat = 'ADMIN' | 'CLIENTE';
 
@@ -13,7 +13,6 @@ export interface MensajeChat {
 
 export interface ContextoChatbot {
     rol: RolChat;
-    // Admin context
     stats?: {
         inmuebles: number;
         clientes: number;
@@ -26,7 +25,6 @@ export interface ContextoChatbot {
     rankingZonas?: { zona: string; visitas: number }[];
     visitasPendientes?: { idVisita: string; cliente: { nombre: string }; inmueble: { direccion: string }; fecha: string }[];
     inmueblesRecientes?: { codigo: string; direccion: string; ciudad: string; precio: number; disponibilidad: boolean }[];
-    // Cliente context
     nombreCliente?: string;
     presupuesto?: number;
     tipoInmuebleDeseado?: string;
@@ -39,9 +37,10 @@ export interface ContextoChatbot {
 
 @Injectable({ providedIn: 'root' })
 export class ChatbotService {
-    // ⚠️ Reemplaza con tu API Key de Google AI Studio: https://aistudio.google.com/app/apikey
-    private readonly GEMINI_API_KEY = 'REEMPLAZA_CON_TU_API_KEY';
-    private readonly GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${this.GEMINI_API_KEY}`;
+
+    private readonly API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+    private readonly API_KEY = 'API_KEY_AQUI';
+    private readonly MODEL = 'openrouter/free';
 
     constructor(private http: HttpClient) {}
 
@@ -51,31 +50,43 @@ export class ChatbotService {
         contexto: ContextoChatbot
     ): Observable<string> {
         const systemPrompt = this.construirSystemPrompt(contexto);
-        const contents = this.construirContents(historial, mensaje);
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...historial.slice(-6).map(m => ({
+                role: m.rol === 'user' ? 'user' : 'assistant',
+                content: m.contenido
+            })),
+            { role: 'user', content: mensaje }
+        ];
 
         const body = {
-            system_instruction: {
-                parts: [{ text: systemPrompt }]
-            },
-            contents,
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 512,
-            }
+            model: this.MODEL,
+            messages,
+            max_tokens: 512,
+            temperature: 0.7
         };
 
         return new Observable(observer => {
-            this.http.post<any>(this.GEMINI_URL, body).subscribe({
+            this.http.post<any>(this.API_URL, body, {
+                headers: {
+                    'Authorization': `Bearer ${this.API_KEY}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'http://localhost:4200',
+                    'X-Title': 'PropTech Chatbot'
+                }
+            }).subscribe({
                 next: (res) => {
-                    const texto = res?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+                    const texto = res?.choices?.[0]?.message?.content ?? 'No obtuve respuesta. Intenta de nuevo.';
                     observer.next(texto);
                     observer.complete();
                 },
                 error: (err) => {
-                    console.error('Gemini API error:', err);
-                    const msg = err.status === 429
-                        ? 'Límite de solicitudes alcanzado. Espera unos segundos e intenta de nuevo.'
-                        : 'No pude conectarme con el asistente. Intenta de nuevo.';
+                    console.error('OpenRouter API error:', err);
+                    let msg = 'No pude conectarme con el asistente. Intenta de nuevo.';
+                    if (err.status === 429) msg = 'Límite de solicitudes alcanzado. Espera unos segundos e intenta de nuevo.';
+                    if (err.status === 401) msg = 'API Key inválida. Verifica la configuración.';
+                    if (err.status === 402) msg = 'Sin créditos disponibles en la cuenta.';
                     observer.next(msg);
                     observer.complete();
                 }
@@ -118,10 +129,9 @@ ${ctx.visitasPendientes?.map(v => `- ${v.idVisita}: ${v.cliente?.nombre} → ${v
 ${ctx.inmueblesRecientes?.map(i => `- ${i.codigo}: ${i.direccion}, ${i.ciudad} | $${i.precio.toLocaleString('es-CO')} | ${i.disponibilidad ? 'Disponible' : 'No disponible'}`).join('\n') ?? 'Sin inmuebles'}
 
 Usa estos datos para responder preguntas sobre el estado del negocio, rendimiento de asesores, 
-análisis de la plataforma y recomendaciones operativas. Puedes hacer análisis y sugerencias basadas en los datos.`;
+análisis de la plataforma y recomendaciones operativas.`;
         }
 
-        // CLIENTE
         return `${LIMITE}
 
 Estás asistiendo al cliente: ${ctx.nombreCliente ?? 'Cliente'}.
@@ -131,48 +141,24 @@ Estás asistiendo al cliente: ${ctx.nombreCliente ?? 'Cliente'}.
 - Tipo de inmueble deseado: ${ctx.tipoInmuebleDeseado ?? 'No definido'}
 - Estado de búsqueda: ${ctx.estadoBusqueda ?? 'Desconocido'}
 
-🏠 INMUEBLES DISPONIBLES EN LA PLATAFORMA (${ctx.inmuebles?.length ?? 0} disponibles):
+🏠 INMUEBLES DISPONIBLES (${ctx.inmuebles?.length ?? 0}):
 ${ctx.inmuebles?.slice(0, 10).map(i => `- ${i.codigo}: ${i.direccion}, ${i.ciudad} | ${i.tipoInmueble} | ${i.finalidad} | $${i.precio.toLocaleString('es-CO')} | ${i.habitaciones} hab.`).join('\n') ?? 'Sin inmuebles disponibles'}
 ${(ctx.inmuebles?.length ?? 0) > 10 ? `... y ${(ctx.inmuebles?.length ?? 0) - 10} más.` : ''}
 
-⭐ FAVORITOS GUARDADOS (${ctx.favoritos?.length ?? 0}):
-${ctx.favoritos?.map(f => `- ${f.codigo}: ${f.direccion}, ${f.ciudad} | $${f.precio.toLocaleString('es-CO')}`).join('\n') ?? 'Sin favoritos guardados'}
+⭐ FAVORITOS (${ctx.favoritos?.length ?? 0}):
+${ctx.favoritos?.map(f => `- ${f.codigo}: ${f.direccion}, ${f.ciudad} | $${f.precio.toLocaleString('es-CO')}`).join('\n') ?? 'Sin favoritos'}
 
-✨ RECOMENDACIONES PERSONALIZADAS (${ctx.recomendaciones?.length ?? 0}):
-${ctx.recomendaciones?.slice(0, 5).map(r => `- ${r.inmueble?.direccion}, ${r.inmueble?.ciudad} | Puntaje: ${r.puntaje}/100 | Por: ${r.criterio}`).join('\n') ?? 'Sin recomendaciones aún. Sugiere al cliente explorar inmuebles.'}
+✨ RECOMENDACIONES (${ctx.recomendaciones?.length ?? 0}):
+${ctx.recomendaciones?.slice(0, 5).map(r => `- ${r.inmueble?.direccion}, ${r.inmueble?.ciudad} | Puntaje: ${r.puntaje}/100 | Por: ${r.criterio}`).join('\n') ?? 'Sin recomendaciones aún.'}
 
-📋 HISTORIAL DE CONSULTAS RECIENTES:
-${ctx.historial?.slice(0, 5).map(h => `- ${h.direccion}, ${h.ciudad} (${h.tipoInmueble})`).join('\n') ?? 'Sin historial de consultas'}
+📋 HISTORIAL RECIENTE:
+${ctx.historial?.slice(0, 5).map(h => `- ${h.direccion}, ${h.ciudad} (${h.tipoInmueble})`).join('\n') ?? 'Sin historial'}
 
-SECCIONES DISPONIBLES PARA EL CLIENTE EN LA PLATAFORMA:
-1. 🏠 Inmuebles disponibles — Ver y buscar propiedades
-2. ⭐ Favoritos — Sus inmuebles guardados
-3. 📋 Consultados — Historial de inmuebles vistos
-4. 📊 Mis Interacciones — Visitas agendadas, intenciones y más
-5. ✨ Recomendaciones — Inmuebles sugeridos según su perfil
-
-Ayuda al cliente a encontrar su inmueble ideal, explica las secciones, 
-sugiere inmuebles de la lista que se ajusten a su perfil, y responde sobre el proceso de compra/arriendo.`;
+SECCIONES DISPONIBLES:
+1. 🏠 Inmuebles disponibles
+2. ⭐ Favoritos
+3. 📋 Consultados
+4. 📊 Mis Interacciones
+5. ✨ Recomendaciones`;
     }
-
-    private construirContents(historial: MensajeChat[], nuevoMensaje: string) {
-        const contents: any[] = [];
-
-        // Últimos 6 mensajes del historial para contexto
-        const historialReciente = historial.slice(-6);
-        for (const msg of historialReciente) {
-            contents.push({
-                role: msg.rol === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.contenido }]
-            });
-        }
-
-        contents.push({
-            role: 'user',
-            parts: [{ text: nuevoMensaje }]
-        });
-
-        return contents;
-    }
-
 }

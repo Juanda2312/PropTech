@@ -9,8 +9,8 @@ import { catchError } from 'rxjs/operators';
 @Injectable()
 export class ErrorInterceptor implements HttpInterceptor {
     intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-        // No interceptar requests a Gemini
-        if (req.url.includes('generativelanguage.googleapis.com')) {
+        // No interceptar requests externos
+        if (req.url.startsWith('http')) {
             return next.handle(req);
         }
 
