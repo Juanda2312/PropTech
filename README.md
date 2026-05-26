@@ -10,6 +10,7 @@
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Estructuras de datos utilizadas](#estructuras-de-datos-utilizadas)
 - [Funcionalidades principales](#funcionalidades-principales)
+- [Chatbot con IA — PropBot](#chatbot-con-ia--propbot)
 - [Autenticación y roles](#autenticación-y-roles)
 - [Portal del cliente](#portal-del-cliente)
 - [Persistencia de datos](#persistencia-de-datos)
@@ -40,7 +41,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 ┌──────────────────────────────────────┐
 │         Frontend (Angular 17)        │
 │   Dashboard · Módulos · Reportes     │
-│   Portal Cliente · Login             │
+│   Portal Cliente · Login · PropBot   │
 └────────────────┬─────────────────────┘
                  │ HTTP / REST (proxy /api → :8080)
 ┌────────────────▼─────────────────────┐
@@ -48,6 +49,12 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 │  Controllers → Services → Repository │
 │       Estructuras de datos propias   │
 │       Persistencia JSON en /data/    │
+└──────────────────────────────────────┘
+                 │
+┌────────────────▼─────────────────────┐
+│         OpenRouter API               │
+│   Modelo LLM externo (free tier)     │
+│   Contexto en tiempo real inyectado  │
 └──────────────────────────────────────┘
 ```
 
@@ -65,6 +72,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 - Aplicación Angular 17 con componentes standalone.
 - Módulos: Dashboard, Inmuebles, Clientes, Asesores, Visitas, Operaciones, Alertas, Eventos Inusuales, Recomendaciones, Análisis de Grafo.
 - Portal del cliente con secciones propias: inmuebles disponibles, favoritos, historial, interacciones y recomendaciones.
+- **PropBot:** asistente de IA flotante disponible en el panel de administración y en el portal del cliente.
 - Sistema de autenticación con roles: ADMIN y CLIENTE.
 - Comunicación con el backend mediante servicios HTTP con proxy de desarrollo.
 
@@ -168,6 +176,66 @@ Puntaje calculado con seis criterios (máx. 100 pts):
 
 ---
 
+## Chatbot con IA — PropBot
+
+La plataforma integra **PropBot**, un asistente conversacional con IA disponible tanto en el panel de administración como en el portal del cliente. El chatbot está impulsado por un modelo LLM externo a través de **OpenRouter** y se comunica directamente desde el frontend.
+
+### Características principales
+
+- **Botón flotante** en la esquina inferior derecha, accesible desde cualquier pantalla con shell activo (admin y portal cliente).
+- **Contexto en tiempo real:** antes de cada conversación, el componente inyecta datos actuales de la plataforma directamente en el prompt del sistema, por lo que el asistente responde con información real del estado del negocio.
+- **Dos modos de operación según el rol del usuario:**
+
+| Rol | Contexto inyectado |
+|---|---|
+| **ADMIN** | Estadísticas del dashboard (inmuebles, clientes, asesores, visitas pendientes, alertas abiertas), todas las alertas abiertas ordenadas por nivel, ranking de asesores, actividad por zona, visitas pendientes próximas e inmuebles recientes |
+| **CLIENTE** | Perfil del cliente (presupuesto, tipo de inmueble deseado, estado de búsqueda), inmuebles disponibles, favoritos guardados, historial de consultas y recomendaciones personalizadas |
+
+- **Restricción temática:** el asistente solo responde preguntas relacionadas con bienes raíces y el sistema PropTech. Cualquier consulta fuera de ese ámbito recibe una respuesta amable indicando la restricción.
+- **Sugerencias rápidas:** al abrir el chat por primera vez se muestran chips de pregunta frecuente adaptados al rol del usuario.
+- **Formato enriquecido:** el asistente puede usar **negritas** (`**texto**`) en sus respuestas, que se renderizan correctamente en la interfaz.
+- **Historial de conversación:** se mantienen los últimos 6 mensajes como contexto para el modelo, permitiendo conversaciones con continuidad natural.
+- **Botón de nueva conversación:** limpia el historial y reinicia el saludo de bienvenida sin recargar la página.
+
+### Configuración
+
+El servicio del chatbot se encuentra en `frontend/src/app/core/services/chatbot.service.ts`. Para activarlo es necesario reemplazar la constante `API_KEY` por una clave válida de OpenRouter:
+
+```typescript
+// chatbot.service.ts
+private readonly API_KEY = 'API_KEY_AQUI'; // ← reemplazar con tu clave
+private readonly MODEL  = 'openrouter/free'; // o cualquier modelo soportado
+```
+
+Puedes obtener una clave gratuita en [openrouter.ai](https://openrouter.ai). El modelo `openrouter/free` utiliza el tier gratuito disponible en la cuenta.
+
+### Arquitectura del chatbot
+
+```
+AppComponent / ClientePortalComponent
+    │
+    ├── construirContextoAdmin() / construirContextoChatCliente()
+    │       Recopila datos en tiempo real del backend mediante forkJoin
+    │       y construye el objeto ContextoChatbot
+    │
+    └── <app-chatbot [contexto]="contextoChat">
+            │
+            ChatbotComponent
+                │
+                ChatbotService.enviarMensaje(mensaje, historial, contexto)
+                    │
+                    construirSystemPrompt(contexto)
+                    │   ← inyecta datos reales del dashboard o del cliente
+                    │
+                    POST https://openrouter.ai/api/v1/chat/completions
+                        modelo: openrouter/free
+                        max_tokens: 2048
+```
+
+> **Nota de privacidad:** las llamadas al API de OpenRouter se realizan directamente desde el navegador del usuario. Los datos del sistema (estadísticas, alertas, nombres de clientes) se envían al proveedor externo como parte del prompt. En entornos de producción se recomienda proxiar las llamadas a través del backend para mantener la clave de API segura y aplicar filtros adicionales sobre el contexto enviado.
+
+---
+
 ## Autenticación y roles
 
 El sistema cuenta con dos roles diferenciados:
@@ -218,6 +286,9 @@ Interfaz dedicada accesible en `/cliente` para usuarios con rol CLIENTE. Cuenta 
 - Razones explícitas del porqué se recomienda cada inmueble.
 - Acciones directas: guardar favorito, agendar visita, declarar intención.
 
+### PropBot en el portal
+El asistente PropBot también está disponible en el portal del cliente con contexto personalizado: conoce el perfil del usuario, sus favoritos, su historial de consultas y las recomendaciones generadas, por lo que puede orientarlo de forma personalizada durante su búsqueda de inmueble.
+
 ---
 
 ## Persistencia de datos
@@ -266,6 +337,12 @@ Al restaurar, el `DataLoader` reconstruye el grafo de relaciones cliente↔inmue
 | SCSS | — | Estilos |
 | Node.js | ≥ 18 | Entorno de ejecución |
 
+### Inteligencia Artificial
+| Tecnología | Rol |
+|---|---|
+| OpenRouter API | Proveedor del modelo LLM para PropBot |
+| `openrouter/free` | Modelo de lenguaje usado por defecto (tier gratuito) |
+
 ---
 
 ## Requisitos previos
@@ -274,6 +351,7 @@ Al restaurar, el `DataLoader` reconstruye el grafo de relaciones cliente↔inmue
 - **Maven 3.9** o superior (o usar el wrapper `./mvnw`)
 - **Node.js 18** o superior
 - **Angular CLI 17** (`npm install -g @angular/cli@17`)
+- **Clave de API de OpenRouter** (opcional, necesaria para activar PropBot)
 
 ---
 
@@ -304,7 +382,18 @@ La documentación Swagger UI estará disponible en:
 http://localhost:8080/swagger-ui/index.html
 ```
 
-### 3. Ejecutar el frontend
+### 3. Configurar PropBot (opcional)
+
+Antes de ejecutar el frontend, reemplaza la clave de API en el servicio del chatbot:
+
+```typescript
+// frontend/src/app/core/services/chatbot.service.ts
+private readonly API_KEY = 'sk-or-tu-clave-aqui';
+```
+
+Sin este paso la aplicación funciona con normalidad; el chatbot mostrará un mensaje de error de autenticación al intentar usarse.
+
+### 4. Ejecutar el frontend
 
 ```bash
 cd frontend
@@ -315,7 +404,7 @@ npm start
 La aplicación Angular quedará disponible en `http://localhost:4200`.
 El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 
-### 4. Acceso al sistema
+### 5. Acceso al sistema
 
 | Rol | URL | Credenciales de prueba |
 |---|---|---|
@@ -529,8 +618,11 @@ Al iniciar la aplicación por primera vez, el `DataLoader` inserta automáticame
     │   ├── core/
     │   │   ├── models/              # Interfaces TypeScript
     │   │   ├── services/            # Servicios HTTP (uno por entidad)
+    │   │   │   └── chatbot.service.ts  # Servicio PropBot (OpenRouter)
     │   │   ├── guards/              # authGuard + adminGuard
     │   │   └── interceptors/        # Error interceptor global
+    │   ├── shared/
+    │   │   └── chatbot/             # Componente PropBot (HTML + SCSS + TS)
     │   └── features/                # Componentes por módulo
     │       ├── login/               # Pantalla de login y registro
     │       ├── dashboard/
