@@ -63,7 +63,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 - **Controllers:** exponen la API REST bajo `/api/**` y `/api/plataforma/**`.
 - **Services:** contienen la lógica de negocio. `PlataformaBeta` es el orquestador principal.
 - **Repositories:** encapsulan las estructuras de datos (HashTable, AVLTree, Stack, Queue, PriorityQueue).
-- **Structures:** implementaciones propias de cada estructura de datos.
+- **Structures:** implementaciones propias de cada estructura de datos, sin usar `java.util` para las colecciones principales.
 - **Exceptions:** jerarquía de excepciones de dominio con manejo global vía `GlobalExceptionHandler`.
 - **PersistenciaService:** guarda y restaura el estado completo en archivos JSON dentro de `/data/` al apagar y encender el servidor.
 
@@ -80,7 +80,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 
 ## Estructuras de datos utilizadas
 
-Todas las estructuras son **implementaciones propias** (sin usar `java.util` para las estructuras principales).
+Todas las estructuras son **implementaciones propias** sin usar `java.util` para las colecciones principales.
 
 | Estructura | Clase | Uso en el sistema |
 |---|---|---|
@@ -96,8 +96,8 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 
 - **HashTable:** acceso O(1) para las búsquedas más frecuentes del sistema (cliente por ID, inmueble por código).
 - **AVLTree:** garantiza orden y balanceo automático para consultas por rango de precio y rankings; recorrido inOrder produce la lista ordenada sin costo adicional.
-- **Stack:** permite deshacer el último cambio sobre cualquier inmueble restaurando el snapshot previo.
-- **PriorityQueue (heap máximo):** las visitas VIP y las alertas críticas se extraen siempre primero, independientemente del orden de llegada.
+- **Stack:** permite deshacer el último cambio sobre cualquier inmueble restaurando el snapshot previo en O(1).
+- **PriorityQueue (heap máximo):** las visitas VIP y las alertas críticas se extraen siempre primero, independientemente del orden de llegada, en O(log n).
 - **Graph (no dirigido):** representa la relación bidireccional cliente↔inmueble generada con cada visita; el BFS permite descubrir todos los nodos conectados desde cualquier punto.
 - **SimpleLinkedList:** permite inserción en O(1) al frente (`addFirst`) para mantener el historial de interacciones en orden cronológico inverso (más reciente primero).
 
@@ -114,8 +114,8 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 
 ### Gestión de clientes
 - CRUD completo con validación de duplicados y formato de cédula (10 dígitos).
-- Historial de inmuebles consultados, visitados, favoritos, descartados y negociados.
-- Historial unificado de interacciones (visitas agendadas, favoritos guardados, intenciones de compra/renta, compras/arriendos realizados, inmuebles consultados/descartados).
+- Historial de inmuebles consultados, visitados, favoritos, descartados y negociados (cinco `SimpleLinkedList` independientes).
+- Historial unificado de interacciones en orden cronológico inverso.
 - Ordenamiento por presupuesto (AVL).
 - Recomendaciones personalizadas por puntaje de coincidencia.
 
@@ -131,20 +131,20 @@ Todas las estructuras son **implementaciones propias** (sin usar `java.util` par
 - Cola de prioridad VIP: procesa la visita más urgente primero.
 
 ### Alertas automáticas
-- Inmuebles sin visitas (inactivos).
-- Visitas pendientes por más de 3 días sin confirmar.
-- Clientes activos sin ninguna interacción registrada.
-- Contratos próximos a vencer (dentro de 30 días), con nivel según días restantes (≤7: CRÍTICO, ≤15: ALTO, ≤30: MEDIO).
-- Inmuebles con alta demanda y sin cierre (> 10 visitas).
-- Operaciones activas por más de 60 días sin cerrarse.
+- Inmuebles sin visitas (inactivos): nivel **BAJO**.
+- Visitas pendientes sin confirmar por más de 3 días: nivel **MEDIO**.
+- Clientes activos sin ninguna interacción registrada: nivel **BAJO**.
+- Contratos próximos a vencer (dentro de 30 días): **CRÍTICO** si quedan ≤7 días, **ALTO** si ≤15, **MEDIO** en el resto.
+- Inmuebles con alta demanda y sin cierre (>10 visitas): nivel **MEDIO**.
+- Operaciones activas por más de 60 días sin cerrarse: nivel **ALTO**.
 - Alertas gestionadas con cola FIFO y cola de prioridad (extrae primero la más crítica).
 
 ### Detección de comportamientos inusuales
-- Clientes con exceso de visitas sin cierre (> 10).
-- Asesores con sobrecarga de atención (carga > 15).
-- Inmuebles con alta demanda sin cierre (> 20 visitas).
-- Inmuebles con cambios de precio frecuentes (> 3 veces).
-- Concentración inusual de visitas en una misma zona (> 15).
+- Clientes con exceso de visitas sin cierre (>10).
+- Asesores con sobrecarga de atención (carga >15).
+- Inmuebles con alta demanda sin cierre (>20 visitas).
+- Inmuebles con cambios de precio frecuentes (>3 veces).
+- Concentración inusual de visitas en una misma zona (>15).
 
 ### Recomendaciones inteligentes
 Puntaje calculado con seis criterios (máx. 100 pts):
@@ -182,120 +182,68 @@ La plataforma integra **PropBot**, un asistente conversacional con IA disponible
 
 ### Características principales
 
-- **Botón flotante** en la esquina inferior derecha, accesible desde cualquier pantalla con shell activo (admin y portal cliente).
-- **Contexto en tiempo real:** antes de cada conversación, el componente inyecta datos actuales de la plataforma directamente en el prompt del sistema, por lo que el asistente responde con información real del estado del negocio.
+- **Botón flotante** en la esquina inferior derecha, accesible desde cualquier pantalla con shell activo.
+- **Contexto en tiempo real:** antes de cada conversación, el componente inyecta datos actuales de la plataforma directamente en el prompt del sistema.
 - **Dos modos de operación según el rol del usuario:**
 
 | Rol | Contexto inyectado |
 |---|---|
-| **ADMIN** | Estadísticas del dashboard (inmuebles, clientes, asesores, visitas pendientes, alertas abiertas), todas las alertas abiertas ordenadas por nivel, ranking de asesores, actividad por zona, visitas pendientes próximas e inmuebles recientes |
-| **CLIENTE** | Perfil del cliente (presupuesto, tipo de inmueble deseado, estado de búsqueda), inmuebles disponibles, favoritos guardados, historial de consultas y recomendaciones personalizadas |
+| **ADMIN** | Estadísticas del dashboard, alertas abiertas ordenadas por nivel, ranking de asesores, actividad por zona, visitas pendientes e inmuebles recientes |
+| **CLIENTE** | Perfil del cliente, inmuebles disponibles, favoritos guardados, historial de consultas y recomendaciones personalizadas |
 
-- **Restricción temática:** el asistente solo responde preguntas relacionadas con bienes raíces y el sistema PropTech. Cualquier consulta fuera de ese ámbito recibe una respuesta amable indicando la restricción.
-- **Sugerencias rápidas:** al abrir el chat por primera vez se muestran chips de pregunta frecuente adaptados al rol del usuario.
-- **Formato enriquecido:** el asistente puede usar **negritas** (`**texto**`) en sus respuestas, que se renderizan correctamente en la interfaz.
-- **Historial de conversación:** se mantienen los últimos 6 mensajes como contexto para el modelo, permitiendo conversaciones con continuidad natural.
-- **Botón de nueva conversación:** limpia el historial y reinicia el saludo de bienvenida sin recargar la página.
+- **Restricción temática:** solo responde preguntas relacionadas con bienes raíces y el sistema PropTech.
+- **Sugerencias rápidas:** chips de pregunta frecuente adaptados al rol al abrir el chat.
+- **Historial de conversación:** se mantienen los últimos 6 mensajes como contexto para el modelo.
 
 ### Configuración
 
-El servicio del chatbot se encuentra en `frontend/src/app/core/services/chatbot.service.ts`. Para activarlo es necesario reemplazar la constante `API_KEY` por una clave válida de OpenRouter:
-
 ```typescript
-// chatbot.service.ts
-private readonly API_KEY = 'API_KEY_AQUI'; // ← reemplazar con tu clave
-private readonly MODEL  = 'openrouter/free'; // o cualquier modelo soportado
+// frontend/src/app/core/services/chatbot.service.ts
+private readonly API_KEY = 'sk-or-tu-clave-aqui'; // ← reemplazar con tu clave
+private readonly MODEL  = 'openrouter/free';
 ```
 
-Puedes obtener una clave gratuita en [openrouter.ai](https://openrouter.ai). El modelo `openrouter/free` utiliza el tier gratuito disponible en la cuenta.
+Puedes obtener una clave gratuita en [openrouter.ai](https://openrouter.ai).
 
-### Arquitectura del chatbot
-
-```
-AppComponent / ClientePortalComponent
-    │
-    ├── construirContextoAdmin() / construirContextoChatCliente()
-    │       Recopila datos en tiempo real del backend mediante forkJoin
-    │       y construye el objeto ContextoChatbot
-    │
-    └── <app-chatbot [contexto]="contextoChat">
-            │
-            ChatbotComponent
-                │
-                ChatbotService.enviarMensaje(mensaje, historial, contexto)
-                    │
-                    construirSystemPrompt(contexto)
-                    │   ← inyecta datos reales del dashboard o del cliente
-                    │
-                    POST https://openrouter.ai/api/v1/chat/completions
-                        modelo: openrouter/free
-                        max_tokens: 2048
-```
-
-> **Nota de privacidad:** las llamadas al API de OpenRouter se realizan directamente desde el navegador del usuario. Los datos del sistema (estadísticas, alertas, nombres de clientes) se envían al proveedor externo como parte del prompt. En entornos de producción se recomienda proxiar las llamadas a través del backend para mantener la clave de API segura y aplicar filtros adicionales sobre el contexto enviado.
+> **Nota de privacidad:** las llamadas al API de OpenRouter se realizan desde el navegador del usuario. En producción se recomienda proxiar las llamadas a través del backend.
 
 ---
 
 ## Autenticación y roles
-
-El sistema cuenta con dos roles diferenciados:
 
 ### Administrador (ADMIN)
 - Credenciales hardcodeadas en `AuthService`.
 - Cuentas predefinidas:
   - `jose@gmail.com` / `1111100000`
   - `tapiero@gmail.com` / `0000011111`
-- Acceso completo al panel de administración con todos los módulos.
+- Acceso completo al panel de administración.
 
 ### Cliente (CLIENTE)
-- Puede registrarse desde la pantalla de login (crea cuenta en frontend y en backend simultáneamente).
-- También puede iniciar sesión con las credenciales de los clientes cargados por el `DataLoader` (correo + ID de cédula).
-- Al autenticarse, el sistema vincula automáticamente su cuenta frontend con su registro en el backend buscando por correo.
+- Puede registrarse desde la pantalla de login.
+- También puede iniciar sesión con los clientes cargados por el `DataLoader` (correo + cédula).
+- Al autenticarse, el sistema vincula automáticamente su cuenta frontend con su registro en el backend.
 - Redirige al Portal del Cliente (`/cliente`).
-
-El sistema usa `sessionStorage` para mantener la sesión activa y `localStorage` para cachear clientes registrados en el frontend.
 
 ---
 
 ## Portal del cliente
 
-Interfaz dedicada accesible en `/cliente` para usuarios con rol CLIENTE. Cuenta con cinco secciones:
+Interfaz dedicada accesible en `/cliente` con cinco secciones:
 
-### Inmuebles disponibles
-- Listado de todos los inmuebles con disponibilidad activa.
-- Búsqueda en tiempo real por ciudad, barrio, tipo o dirección.
-- Al pasar el cursor (hover) sobre una tarjeta se registra automáticamente la consulta en el historial del cliente (una sola vez por sesión para evitar duplicados).
-- Acciones por tarjeta: guardar/quitar favorito, agendar visita, declarar intención de compra o renta.
+- **Inmuebles disponibles:** listado filtrable; registra consultas automáticamente al hacer hover.
+- **Favoritos:** inmuebles guardados con acciones directas.
+- **Consultados:** historial de inmuebles con los que el cliente interactuó.
+- **Mis Interacciones:** historial unificado filtrable por tipo (visitas, favoritos, intenciones, compras/arriendos, consultas, descartes).
+- **Recomendaciones:** inmuebles recomendados con puntaje de coincidencia visual (0–100), razones explícitas y acciones directas.
 
-### Favoritos
-- Lista de inmuebles guardados por el cliente.
-- Acciones directas: agendar visita, declarar intención.
-
-### Consultados
-- Historial de inmuebles con los que el cliente interactuó.
-
-### Mis Interacciones
-- Historial unificado de todas las acciones del cliente ordenadas de más reciente a más antigua.
-- Filtrable por tipo: visitas agendadas, favoritos, intenciones de compra/renta, compras/arriendos realizados, inmuebles consultados/descartados.
-- Formulario para agendar visita directamente desde esta sección.
-- Formulario para declarar intención de compra o renta.
-
-### Recomendaciones
-- Inmuebles recomendados personalizados con puntaje de coincidencia (0-100).
-- Indicador visual circular por cada inmueble con color según nivel de coincidencia.
-- Razones explícitas del porqué se recomienda cada inmueble.
-- Acciones directas: guardar favorito, agendar visita, declarar intención.
-
-### PropBot en el portal
-El asistente PropBot también está disponible en el portal del cliente con contexto personalizado: conoce el perfil del usuario, sus favoritos, su historial de consultas y las recomendaciones generadas, por lo que puede orientarlo de forma personalizada durante su búsqueda de inmueble.
+PropBot también está disponible en el portal con contexto personalizado del cliente.
 
 ---
 
 ## Persistencia de datos
 
-El sistema persiste automáticamente todos los datos en archivos JSON dentro del directorio `/data/` al apagar el servidor (`@PreDestroy`), y los restaura al volver a arrancar.
+El sistema persiste automáticamente todos los datos en archivos JSON dentro de `/data/` al apagar el servidor (`@PreDestroy`), y los restaura al volver a arrancar (`CommandLineRunner`).
 
-Archivos generados:
 ```
 data/
 ├── asesores.json
@@ -308,9 +256,7 @@ data/
 └── interacciones.json
 ```
 
-El archivo `interacciones.json` usa un formato propio (`InteraccionPersistida`) que almacena el ID del cliente y el código del inmueble en lugar de los objetos completos, evitando referencias circulares y problemas con `@JsonIgnore`.
-
-Al restaurar, el `DataLoader` reconstruye el grafo de relaciones cliente↔inmueble y las listas específicas (`inmueblesConsultados`, `propiedadesVisitadas`, `inmueblesGuardados`, etc.) a partir del tipo de cada interacción. Los favoritos también se restauran desde el campo `codigosFavoritos` del cliente.
+`interacciones.json` usa el DTO `InteraccionPersistida` que almacena solo IDs para evitar referencias circulares. Al restaurar, el `DataLoader` reconstruye el grafo de relaciones y las listas específicas de cada cliente a partir del tipo de cada interacción.
 
 ---
 
@@ -335,13 +281,13 @@ Al restaurar, el `DataLoader` reconstruye el grafo de relaciones cliente↔inmue
 | Angular CDK | 17 | Componentes base |
 | RxJS | ~7.8 | Programación reactiva |
 | SCSS | — | Estilos |
-| Node.js | ≥ 18 | Entorno de ejecución |
+| Node.js | ≥18 | Entorno de ejecución |
 
 ### Inteligencia Artificial
 | Tecnología | Rol |
 |---|---|
 | OpenRouter API | Proveedor del modelo LLM para PropBot |
-| `openrouter/free` | Modelo de lenguaje usado por defecto (tier gratuito) |
+| `openrouter/free` | Modelo de lenguaje usado por defecto |
 
 ---
 
@@ -367,31 +313,26 @@ cd <nombre-del-proyecto>
 ### 2. Ejecutar el backend
 
 ```bash
-# Desde la raíz del proyecto
 ./mvnw spring-boot:run
 ```
 
 El servidor arranca en `http://localhost:8080`.
 
-**Primera ejecución:** el `DataLoader` carga automáticamente datos de prueba (5 asesores, 10 clientes, 20 inmuebles, 20 visitas y 8 operaciones).
+**Primera ejecución:** el `DataLoader` carga automáticamente datos de prueba (5 asesores, 10 clientes, 20 inmuebles, 10 visitas y 4 operaciones).
 
 **Ejecuciones siguientes:** el sistema detecta los archivos en `/data/` y restaura el estado guardado automáticamente.
 
-La documentación Swagger UI estará disponible en:
+Documentación Swagger UI:
 ```
 http://localhost:8080/swagger-ui/index.html
 ```
 
 ### 3. Configurar PropBot (opcional)
 
-Antes de ejecutar el frontend, reemplaza la clave de API en el servicio del chatbot:
-
 ```typescript
 // frontend/src/app/core/services/chatbot.service.ts
 private readonly API_KEY = 'sk-or-tu-clave-aqui';
 ```
-
-Sin este paso la aplicación funciona con normalidad; el chatbot mostrará un mensaje de error de autenticación al intentar usarse.
 
 ### 4. Ejecutar el frontend
 
@@ -401,12 +342,11 @@ npm install
 npm start
 ```
 
-La aplicación Angular quedará disponible en `http://localhost:4200`.
-El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
+Disponible en `http://localhost:4200`. El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 
 ### 5. Acceso al sistema
 
-| Rol | URL | Credenciales de prueba |
+| Rol | URL | Credenciales |
 |---|---|---|
 | Administrador | `http://localhost:4200/dashboard` | `jose@gmail.com` / `1111100000` |
 | Cliente | `http://localhost:4200/cliente` | Usar correo + ID de cualquier cliente del DataLoader, o registrarse |
@@ -459,7 +399,7 @@ El proxy redirige automáticamente `/api/**` → `http://localhost:8080`.
 | `DELETE` | `/api/clientes/{id}/favoritos/{codigo}` | Quitar favorito |
 | `POST` | `/api/clientes/{id}/descartados/{codigo}` | Registrar descarte |
 | `GET` | `/api/clientes/{id}/favoritos` | Obtener favoritos |
-| `GET` | `/api/clientes/{id}/historial` | Obtener historial de consultas (sin duplicados) |
+| `GET` | `/api/clientes/{id}/historial` | Historial de consultas (sin duplicados) |
 | `GET` | `/api/clientes/{id}/interacciones` | Historial unificado (`?tipo=VISITA_AGENDADA`) |
 | `POST` | `/api/clientes/{id}/intencion` | Registrar intención de compra o renta |
 | `POST` | `/api/clientes/{id}/visitas` | Agendar visita desde el portal cliente |
@@ -575,7 +515,7 @@ Al iniciar la aplicación por primera vez, el `DataLoader` inserta automáticame
 | Visitas | 10 (pasadas y recientes) |
 | Operaciones | 4 |
 
-**Nota:** desde la segunda ejecución en adelante el sistema carga desde los archivos JSON en `/data/`, preservando todos los cambios realizados durante la sesión anterior.
+Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSON en `/data/`, preservando todos los cambios realizados durante la sesión anterior.
 
 ---
 
@@ -667,7 +607,7 @@ Todas las respuestas de error siguen el formato:
 }
 ```
 
-El frontend captura todos los errores HTTP mediante un interceptor global (`ErrorInterceptor`) y los muestra como notificaciones toast en la esquina superior derecha.
+El frontend captura todos los errores HTTP mediante `ErrorInterceptor` y los muestra como notificaciones toast en la esquina superior derecha.
 
 ---
 
