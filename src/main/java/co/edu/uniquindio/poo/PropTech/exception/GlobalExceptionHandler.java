@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Intercepta todas las excepciones lanzadas por los controladores
@@ -31,6 +32,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiError> handleNotFound(EntidadNoEncontradaException ex,
                                                    HttpServletRequest request) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiError> handleNoResource(NoResourceFoundException ex,
+                                                     HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "Recurso no encontrado", request);
     }
 
     // ----------------------------------------------------------------
