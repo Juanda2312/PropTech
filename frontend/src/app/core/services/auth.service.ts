@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { map, catchError } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export interface Usuario {
     id: string;
@@ -85,7 +86,7 @@ export class AuthService {
         // PASO 3: Consultar backend (clientes del DataLoader)
         console.log('[Auth] No encontrado localmente, consultando backend para:', correoNorm, id);
 
-        return this.http.get<any[]>('/api/clientes').pipe(
+        return this.http.get<any[]>(`${environment.apiUrl}/api/clientes`).pipe(
             map(clientes => {
                 console.log('[Auth] Clientes recibidos del backend:', clientes.length);
 
@@ -170,7 +171,7 @@ export class AuthService {
             estadoBusqueda: 'ACTIVO',
         };
 
-        this.http.post('/api/plataforma/clientes', dto).subscribe({
+        this.http.post(`${environment.apiUrl}/api/plataforma/clientes`, dto).subscribe({
             next: (res) => console.log('✅ Cliente creado en backend:', res),
             error: (e) => console.error('❌ Error al crear en backend:', e?.error),
         });
