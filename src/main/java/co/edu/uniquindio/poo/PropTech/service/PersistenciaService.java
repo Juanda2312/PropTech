@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,16 +18,14 @@ import java.util.List;
 @Service
 public class PersistenciaService {
 
-    private static final String DIR               = "data/";
-    private static final String ASESORES_FILE     = DIR + "asesores.json";
-    private static final String CLIENTES_FILE     = DIR + "clientes.json";
-    private static final String INMUEBLES_FILE    = DIR + "inmuebles.json";
-    private static final String VISITAS_FILE      = DIR + "visitas.json";
-    private static final String OPERACIONES_FILE  = DIR + "operaciones.json";
-    private static final String ALERTAS_FILE      = DIR + "alertas.json";
-    private static final String EVENTOS_FILE      = DIR + "eventos.json";
-    // Nuevo: interacciones guardadas como lista plana con idCliente
-    private static final String INTERACCIONES_FILE = DIR + "interacciones.json";
+    private final String asesoresFile;
+    private final String clientesFile;
+    private final String inmueblesFile;
+    private final String visitasFile;
+    private final String operacionesFile;
+    private final String alertasFile;
+    private final String eventosFile;
+    private final String interaccionesFile;
 
     private final ObjectMapper mapper;
     private final AsesorRepository        asesorRepository;
@@ -37,7 +36,8 @@ public class PersistenciaService {
     private final AlertaRepository        alertaRepository;
     private final EventoInusualRepository eventoRepository;
 
-    public PersistenciaService(AsesorRepository asesorRepository,
+    public PersistenciaService(@Value("${proptech.data-dir}") String dataDir,
+                               AsesorRepository asesorRepository,
                                ClienteRepository clienteRepository,
                                InmuebleRepository inmuebleRepository,
                                VisitaRepository visitaRepository,
@@ -60,7 +60,18 @@ public class PersistenciaService {
         this.mapper.configure(
                 com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        new File(DIR).mkdirs();
+
+        String dir = (dataDir.endsWith("/") || dataDir.endsWith("\\")) ? dataDir : dataDir + "/";
+        this.asesoresFile      = dir + "asesores.json";
+        this.clientesFile      = dir + "clientes.json";
+        this.inmueblesFile     = dir + "inmuebles.json";
+        this.visitasFile       = dir + "visitas.json";
+        this.operacionesFile   = dir + "operaciones.json";
+        this.alertasFile       = dir + "alertas.json";
+        this.eventosFile       = dir + "eventos.json";
+        this.interaccionesFile = dir + "interacciones.json";
+
+        new File(dir).mkdirs();
     }
 
     // ================================================================
@@ -110,13 +121,13 @@ public class PersistenciaService {
             c.setCodigosFavoritos(codigos);
         }
 
-        guardar(ASESORES_FILE,    asesorRepository.findAll());
-        guardar(CLIENTES_FILE,    clienteRepository.findAll());
-        guardar(INMUEBLES_FILE,   inmuebleRepository.findAll());
-        guardar(VISITAS_FILE,     visitaRepository.findAll());
-        guardar(OPERACIONES_FILE, operacionRepository.findAll());
-        guardar(ALERTAS_FILE,     alertaRepository.findAll());
-        guardar(EVENTOS_FILE,     eventoRepository.findAll());
+        guardar(asesoresFile,    asesorRepository.findAll());
+        guardar(clientesFile,    clienteRepository.findAll());
+        guardar(inmueblesFile,   inmuebleRepository.findAll());
+        guardar(visitasFile,     visitaRepository.findAll());
+        guardar(operacionesFile, operacionRepository.findAll());
+        guardar(alertasFile,     alertaRepository.findAll());
+        guardar(eventosFile,     eventoRepository.findAll());
 
         // Guardar interacciones de todos los clientes
         guardarInteracciones();
@@ -138,7 +149,7 @@ public class PersistenciaService {
             }
         }
 
-        guardar(INTERACCIONES_FILE, todas);
+        guardar(interaccionesFile, todas);
         System.out.println("   💬 Interacciones guardadas: " + todas.size());
     }
 
@@ -155,16 +166,16 @@ public class PersistenciaService {
     // ================================================================
 
     public boolean hayDatosGuardados() {
-        return new File(ASESORES_FILE).exists();
+        return new File(asesoresFile).exists();
     }
 
-    public List<Asesor>        cargarAsesores()    { return cargar(ASESORES_FILE,    Asesor.class); }
-    public List<Cliente>       cargarClientes()    { return cargar(CLIENTES_FILE,    Cliente.class); }
-    public List<Inmueble>      cargarInmuebles()   { return cargar(INMUEBLES_FILE,   Inmueble.class); }
-    public List<Visita>        cargarVisitas()     { return cargar(VISITAS_FILE,     Visita.class); }
-    public List<Operacion>     cargarOperaciones() { return cargar(OPERACIONES_FILE, Operacion.class); }
-    public List<Alerta>        cargarAlertas()     { return cargar(ALERTAS_FILE,     Alerta.class); }
-    public List<EventoInusual> cargarEventos()     { return cargar(EVENTOS_FILE,     EventoInusual.class); }
+    public List<Asesor>        cargarAsesores()    { return cargar(asesoresFile,    Asesor.class); }
+    public List<Cliente>       cargarClientes()    { return cargar(clientesFile,    Cliente.class); }
+    public List<Inmueble>      cargarInmuebles()   { return cargar(inmueblesFile,   Inmueble.class); }
+    public List<Visita>        cargarVisitas()     { return cargar(visitasFile,     Visita.class); }
+    public List<Operacion>     cargarOperaciones() { return cargar(operacionesFile, Operacion.class); }
+    public List<Alerta>        cargarAlertas()     { return cargar(alertasFile,     Alerta.class); }
+    public List<EventoInusual> cargarEventos()     { return cargar(eventosFile,     EventoInusual.class); }
 
     /**
      * Carga las interacciones persistidas y las reconstruye
@@ -172,14 +183,14 @@ public class PersistenciaService {
      * Se llama desde DataLoader DESPUÉS de cargar clientes e inmuebles.
      */
     public void restaurarInteracciones() {
-        File archivo = new File(INTERACCIONES_FILE);
+        File archivo = new File(interaccionesFile);
         if (!archivo.exists()) {
             System.out.println("   ℹ️  No hay archivo de interacciones previo.");
             return;
         }
 
         List<InteraccionPersistida> persistidas =
-                cargar(INTERACCIONES_FILE, InteraccionPersistida.class);
+                cargar(interaccionesFile, InteraccionPersistida.class);
 
         int restauradas = 0;
         for (InteraccionPersistida p : persistidas) {

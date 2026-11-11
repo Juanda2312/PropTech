@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export type RolChat = 'ADMIN' | 'CLIENTE';
 
@@ -40,9 +41,7 @@ export interface ContextoChatbot {
 @Injectable({ providedIn: 'root' })
 export class ChatbotService {
 
-    private readonly API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-    private readonly API_KEY = 'API_KEY_AQUI';
-    private readonly MODEL = 'openrouter/free';
+    private readonly API_URL = `${environment.apiUrl}/api/chatbot/completions`;
 
     constructor(private http: HttpClient) {}
 
@@ -63,7 +62,6 @@ export class ChatbotService {
         ];
 
         const body = {
-            model: this.MODEL,
             messages,
             max_tokens: 2048,
             temperature: 0.7
@@ -72,9 +70,7 @@ export class ChatbotService {
         return new Observable(observer => {
             this.http.post<any>(this.API_URL, body, {
                 headers: {
-                    'Authorization': `Bearer ${this.API_KEY}`,
                     'Content-Type': 'application/json',
-                    'HTTP-Referer': 'http://localhost:4200',
                     'X-Title': 'PropTech Chatbot'
                 }
             }).subscribe({
@@ -89,6 +85,7 @@ export class ChatbotService {
                     if (err.status === 429) msg = 'Límite de solicitudes alcanzado. Espera unos segundos e intenta de nuevo.';
                     if (err.status === 401) msg = 'API Key inválida. Verifica la configuración.';
                     if (err.status === 402) msg = 'Sin créditos disponibles en la cuenta.';
+                    if (err.status === 503) msg = 'PropBot no está configurado en el servidor.';
                     observer.next(msg);
                     observer.complete();
                 }

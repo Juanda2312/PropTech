@@ -1,0 +1,6 @@
+frontend/
+target/
+data/
+.git/
+.idea/
+.vscode/
