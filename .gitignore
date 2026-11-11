@@ -38,3 +38,8 @@ Springinitializer.png
 .data/
 ### Datos de runtime (PersistenciaService) ###
 data/
+
+### Frontend (Angular) ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
