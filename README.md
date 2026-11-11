@@ -2,6 +2,18 @@
 
 > Sistema de gestión inmobiliaria digital que integra estructuras de datos avanzadas para administrar inmuebles, clientes, asesores, visitas, operaciones y análisis de comportamiento comercial.
 
+[![Frontend](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://prop-tech-lake.vercel.app)
+[![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?logo=render&logoColor=white)](https://proptech-api-3ebi.onrender.com/api/asesores)
+
+## Demo en vivo
+
+| Servicio | URL |
+|---|---|
+| Aplicación (frontend, Vercel) | https://prop-tech-lake.vercel.app |
+| API REST (backend, Render) | https://proptech-api-3ebi.onrender.com |
+| Documentación Swagger | https://proptech-api-3ebi.onrender.com/swagger-ui/index.html |
+
+> **Importante:** el backend corre en el plan gratuito de Render. Tras 15 minutos sin tráfico se duerme y la primera petición puede tardar cerca de 1 minuto. Además, el disco es efímero: los datos creados durante la demo se pierden al reiniciarse y vuelven los datos de prueba. Las credenciales de acceso están en la sección [Autenticación y roles](#autenticación-y-roles).
 ---
 
 ## Tabla de contenidos
@@ -22,6 +34,8 @@
 - [Datos de prueba](#datos-de-prueba)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Manejo de errores](#manejo-de-errores)
+- [Demo en vivo](#demo-en-vivo)
+- [Despliegue](#despliegue)
 
 ---
 
@@ -42,19 +56,22 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 │         Frontend (Angular 17)        │
 │   Dashboard · Módulos · Reportes     │
 │   Portal Cliente · Login · PropBot   │
+│              (Vercel)                │
 └────────────────┬─────────────────────┘
-                 │ HTTP / REST (proxy /api → :8080)
+                 │ HTTPS / REST (CORS restringido)
+                 │ en local: proxy /api → :8080
 ┌────────────────▼─────────────────────┐
 │         Backend (Spring Boot 3)      │
 │  Controllers → Services → Repository │
 │       Estructuras de datos propias   │
 │       Persistencia JSON en /data/    │
-└──────────────────────────────────────┘
-                 │
+│        (Docker en Render)            │
+└────────────────┬─────────────────────┘
+                 │ POST /api/chatbot/completions
+                 │ (la clave vive solo en el servidor)
 ┌────────────────▼─────────────────────┐
 │         OpenRouter API               │
 │   Modelo LLM externo (free tier)     │
-│   Contexto en tiempo real inyectado  │
 └──────────────────────────────────────┘
 ```
 
@@ -197,11 +214,15 @@ La plataforma integra **PropBot**, un asistente conversacional con IA disponible
 
 ### Configuración
 
-```typescript
-// frontend/src/app/core/services/chatbot.service.ts
-private readonly API_KEY = 'sk-or-tu-clave-aqui'; // ← reemplazar con tu clave
-private readonly MODEL  = 'openrouter/free';
-```
+La clave de OpenRouter **ya no está en el frontend**. El navegador llama a `POST /api/chatbot/completions` y el backend reenvía la petición a OpenRouter usando la variable de entorno `OPENROUTER_API_KEY`.
+
+El backend, antes de reenviar, fuerza el modelo (`openrouter/free`) y limita `max_tokens` a 2048, para que nadie pueda gastar la cuota de la clave desde fuera.
+
+| Situación | Respuesta del backend |
+|---|---|
+| Clave configurada | `200` con el JSON del proveedor |
+| Sin `OPENROUTER_API_KEY` | `503` — «PropBot no está configurado» |
+| Falla el proveedor | `502` |
 
 Puedes obtener una clave gratuita en [openrouter.ai](https://openrouter.ai).
 
@@ -243,6 +264,7 @@ PropBot también está disponible en el portal con contexto personalizado del cl
 ## Persistencia de datos
 
 El sistema persiste automáticamente todos los datos en archivos JSON dentro de `/data/` al apagar el servidor (`@PreDestroy`), y los restaura al volver a arrancar (`CommandLineRunner`).
+La carpeta es configurable con la variable `PROPTECH_DATA_DIR` (por defecto `data/`). En el plan gratuito de Render el disco es efímero, por lo que los datos no sobreviven a un reinicio.
 
 ```
 data/
@@ -272,6 +294,7 @@ data/
 | SpringDoc OpenAPI | 2.5.0 | Documentación Swagger UI |
 | Jackson JSR310 | — | Serialización de fechas ISO-8601 |
 | Maven | 3.9.x | Gestión de dependencias |
+| Docker | — | Empaquetado del backend para Render |. En Frontend, añade | Vercel | — | Hosting del SPA |
 
 ### Frontend
 | Tecnología | Versión | Rol |
@@ -329,10 +352,14 @@ http://localhost:8080/swagger-ui/index.html
 
 ### 3. Configurar PropBot (opcional)
 
-```typescript
-// frontend/src/app/core/services/chatbot.service.ts
-private readonly API_KEY = 'sk-or-tu-clave-aqui';
+Define la clave como variable de entorno **antes de arrancar el backend** (PowerShell):
+
+```powershell
+$env:OPENROUTER_API_KEY="sk-or-tu-clave-aqui"
+./mvnw spring-boot:run
 ```
+
+Sin la clave todo funciona, salvo PropBot, que responderá que no está configurado.
 
 ### 4. Ejecutar el frontend
 
@@ -367,6 +394,44 @@ Disponible en `http://localhost:4200`. El proxy redirige automáticamente `/api/
 | dani@gmail.com | 1001234560 |
 
 ---
+## Despliegue
+
+| Parte | Plataforma | Configuración |
+|---|---|---|
+| Frontend (Angular) | Vercel | `frontend/vercel.json` |
+| Backend (Spring Boot) | Render (Docker) | `Dockerfile` + `render.yaml` |
+
+### Variables de entorno del backend
+
+| Variable | Propiedad Spring | Valor por defecto | Uso |
+|---|---|---|---|
+| `PORT` | `server.port` | `8080` | Render inyecta el puerto |
+| `CORS_ALLOWED_ORIGINS` | `proptech.cors.allowed-origins` | `http://localhost:4200` | Orígenes permitidos, separados por comas (admite comodines) |
+| `PROPTECH_DATA_DIR` | `proptech.data-dir` | `data/` | Carpeta de los JSON de persistencia |
+| `OPENROUTER_API_KEY` | `proptech.openrouter.api-key` | vacío | Clave de PropBot |
+
+Ningún secreto está en el repositorio: la clave solo existe como variable de entorno en Render.
+
+### Frontend: URL de la API
+
+- Desarrollo (`environment.ts`): `apiUrl: ''` y el proxy de `ng serve` redirige `/api` a `localhost:8080`.
+- Producción (`environment.prod.ts`): `apiUrl` apunta al backend en Render. El build de producción lo sustituye mediante `fileReplacements` en `angular.json`.
+
+### Pasos para desplegar
+
+1. **Backend en Render:** *New → Blueprint*, elegir el repo y la rama `master`. Render lee `render.yaml` y pide `CORS_ALLOWED_ORIGINS` y `OPENROUTER_API_KEY`.
+2. **URL de la API:** copiar la URL del servicio en `frontend/src/environments/environment.prod.ts` (sin barra final) y hacer push.
+3. **Frontend en Vercel:** *Add New → Project*, importar el repo y poner **Root Directory = `frontend`**.
+4. **Cerrar el CORS:** en Render, `CORS_ALLOWED_ORIGINS` = URL exacta de Vercel (sin barra final).
+
+`vercel.json` incluye un rewrite a `index.html` para que recargar rutas como `/cliente` o `/dashboard` no dé 404, y `package.json` fija la versión de Node en `engines`.
+
+### Limitaciones del plan gratuito
+
+- El backend se duerme tras 15 minutos sin tráfico y tarda cerca de 1 minuto en despertar. El frontend muestra un aviso de error y basta con reintentar.
+- El sistema de archivos es efímero: `data/` se pierde al reiniciar, hacer redeploy o dormirse, y el `DataLoader` vuelve a cargar los datos de prueba. Para conservar los datos hace falta un disco persistente (plan de pago) con `PROPTECH_DATA_DIR=/var/data/`.
+- La API no tiene autenticación real y las cuentas de administrador están en `AuthService`, así que es adecuada para una demo académica, no para producción.
+
 
 ## Endpoints de la API REST
 
@@ -473,6 +538,11 @@ Disponible en `http://localhost:4200`. El proxy redirige automáticamente `/api/
 | `GET` | `/api/plataforma/clientes/alta-probabilidad-cierre` | Clientes con alta prob. de cierre |
 | `GET` | `/api/plataforma/rankings/demanda-sectores` | Simulación de crecimiento por sector |
 
+### Chatbot — `/api/chatbot`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/chatbot/completions` | Proxy hacia OpenRouter (modelo y `max_tokens` forzados por el servidor) |
 ---
 
 ## Diagrama de entidades
@@ -522,6 +592,9 @@ Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSO
 ## Estructura del proyecto
 
 ```
+├── Dockerfile
+├── .dockerignore
+├── render.yaml
 ├── pom.xml                          # Dependencias Maven (Java 21 + Spring Boot 3)
 ├── mvnw / mvnw.cmd                  # Maven Wrapper
 ├── data/                            # Datos persistidos en JSON (se genera en runtime)
@@ -577,6 +650,7 @@ Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSO
     │       ├── grafo/
     │       └── cliente-portal/      # Portal exclusivo para usuarios CLIENTE
     ├── proxy.conf.json              # Proxy /api → localhost:8080
+    ├── vercel.json
     └── angular.json
 ```
 
@@ -594,6 +668,9 @@ El `GlobalExceptionHandler` mapea las excepciones del dominio a códigos HTTP es
 | `EstadoInvalidoException` | 422 Unprocessable Entity |
 | `ReglaNegocioException` | 400 Bad Request |
 | `Exception` (genérico) | 500 Internal Server Error |
+| `NoResourceFoundException` (ruta inexistente) | 404 Not Found |
+| Chatbot sin clave configurada | 503 Service Unavailable |
+| Chatbot con fallo del proveedor | 502 Bad Gateway |
 
 Todas las respuestas de error siguen el formato:
 
@@ -607,7 +684,7 @@ Todas las respuestas de error siguen el formato:
 }
 ```
 
-El frontend captura todos los errores HTTP mediante `ErrorInterceptor` y los muestra como notificaciones toast en la esquina superior derecha.
+El frontend captura todos los errores HTTP de la API (tanto en local como en producción) mediante ErrorInterceptor y los muestra como notificaciones toast en la esquina superior derecha.
 
 ---
 
