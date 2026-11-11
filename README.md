@@ -13,11 +13,25 @@
 | API REST (backend, Render) | https://proptech-api-3ebi.onrender.com |
 | Documentación Swagger | https://proptech-api-3ebi.onrender.com/swagger-ui/index.html |
 
-> **Importante:** el backend corre en el plan gratuito de Render. Tras 15 minutos sin tráfico se duerme y la primera petición puede tardar cerca de 1 minuto. Además, el disco es efímero: los datos creados durante la demo se pierden al reiniciarse y vuelven los datos de prueba. Las credenciales de acceso están en la sección [Autenticación y roles](#autenticación-y-roles).
+### Cuentas de prueba
+
+Son credenciales de demostración, sin datos reales. El panel de administración no tiene autenticación real (ver [Autenticación y roles](#autenticación-y-roles)).
+
+| Rol | Correo | Contraseña (ID) | Entra a |
+|---|---|---|---|
+| Administrador | `jose@gmail.com` | `1111100000` | Panel de administración (`/dashboard`) |
+| Administrador | `tapiero@gmail.com` | `0000011111` | Panel de administración (`/dashboard`) |
+| Cliente | `juan@gmail.com` | `1094567890` | Portal del cliente (`/cliente`) |
+
+También puedes registrarte como cliente desde la pantalla de login.
+
+> **Importante:** el backend corre en el plan gratuito de Render. Tras 15 minutos sin tráfico se duerme y la primera petición puede tardar cerca de 1 minuto (la aplicación muestra un aviso y basta con reintentar). Además, el disco es efímero: los datos creados durante la demo se pierden al reiniciarse y vuelven los datos de prueba.
+
 ---
 
 ## Tabla de contenidos
 
+- [Demo en vivo](#demo-en-vivo)
 - [Descripción general](#descripción-general)
 - [Arquitectura del sistema](#arquitectura-del-sistema)
 - [Estructuras de datos utilizadas](#estructuras-de-datos-utilizadas)
@@ -29,13 +43,13 @@
 - [Tecnologías](#tecnologías)
 - [Requisitos previos](#requisitos-previos)
 - [Instalación y ejecución](#instalación-y-ejecución)
+- [Despliegue](#despliegue)
 - [Endpoints de la API REST](#endpoints-de-la-api-rest)
 - [Diagrama de entidades](#diagrama-de-entidades)
 - [Datos de prueba](#datos-de-prueba)
 - [Estructura del proyecto](#estructura-del-proyecto)
+- [Pruebas](#pruebas)
 - [Manejo de errores](#manejo-de-errores)
-- [Demo en vivo](#demo-en-vivo)
-- [Despliegue](#despliegue)
 
 ---
 
@@ -78,7 +92,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 ### Backend
 
 - **Controllers:** exponen la API REST bajo `/api/**` y `/api/plataforma/**`.
-- **Services:** contienen la lógica de negocio. `PlataformaBeta` es el orquestador principal.
+- **Services:** contienen la lógica de negocio. `PlataformaBeta` es el orquestador principal; `ChatbotProxyService` reenvía las consultas de PropBot a OpenRouter.
 - **Repositories:** encapsulan las estructuras de datos (HashTable, AVLTree, Stack, Queue, PriorityQueue).
 - **Structures:** implementaciones propias de cada estructura de datos, sin usar `java.util` para las colecciones principales.
 - **Exceptions:** jerarquía de excepciones de dominio con manejo global vía `GlobalExceptionHandler`.
@@ -91,7 +105,7 @@ El proyecto sigue una arquitectura **cliente-servidor** en capas:
 - Portal del cliente con secciones propias: inmuebles disponibles, favoritos, historial, interacciones y recomendaciones.
 - **PropBot:** asistente de IA flotante disponible en el panel de administración y en el portal del cliente.
 - Sistema de autenticación con roles: ADMIN y CLIENTE.
-- Comunicación con el backend mediante servicios HTTP con proxy de desarrollo.
+- Comunicación con el backend mediante servicios HTTP: en desarrollo a través del proxy de `ng serve` y en producción directamente contra la URL del backend (`environment.prod.ts`).
 
 ---
 
@@ -195,7 +209,7 @@ Puntaje calculado con seis criterios (máx. 100 pts):
 
 ## Chatbot con IA — PropBot
 
-La plataforma integra **PropBot**, un asistente conversacional con IA disponible tanto en el panel de administración como en el portal del cliente. El chatbot está impulsado por un modelo LLM externo a través de **OpenRouter** y se comunica directamente desde el frontend.
+La plataforma integra **PropBot**, un asistente conversacional con IA disponible tanto en el panel de administración como en el portal del cliente. El chatbot está impulsado por un modelo LLM externo a través de **OpenRouter**. El navegador nunca contacta a OpenRouter directamente: todas las consultas pasan por el endpoint `POST /api/chatbot/completions` del backend.
 
 ### Características principales
 
@@ -214,7 +228,7 @@ La plataforma integra **PropBot**, un asistente conversacional con IA disponible
 
 ### Configuración
 
-La clave de OpenRouter **ya no está en el frontend**. El navegador llama a `POST /api/chatbot/completions` y el backend reenvía la petición a OpenRouter usando la variable de entorno `OPENROUTER_API_KEY`.
+La clave de OpenRouter **no está en el frontend**. El navegador llama a `POST /api/chatbot/completions` y el backend reenvía la petición a OpenRouter usando la variable de entorno `OPENROUTER_API_KEY`.
 
 El backend, antes de reenviar, fuerza el modelo (`openrouter/free`) y limita `max_tokens` a 2048, para que nadie pueda gastar la cuota de la clave desde fuera.
 
@@ -226,11 +240,13 @@ El backend, antes de reenviar, fuerza el modelo (`openrouter/free`) y limita `ma
 
 Puedes obtener una clave gratuita en [openrouter.ai](https://openrouter.ai).
 
-> **Nota de privacidad:** las llamadas al API de OpenRouter se realizan desde el navegador del usuario. En producción se recomienda proxiar las llamadas a través del backend.
+> **Seguridad:** la clave solo existe como variable de entorno en el servidor y nunca viaja en el bundle del frontend. CORS no protege frente a clientes como `curl`, por eso el backend limita el modelo y los tokens. El proxy no tiene límite de peticiones por usuario; si la demo se abriera a mucho público, convendría añadirlo.
 
 ---
 
 ## Autenticación y roles
+
+> La autenticación de este proyecto es **de demostración**: no hay contraseñas reales ni autenticación en la API. Es adecuada para un trabajo académico, no para producción.
 
 ### Administrador (ADMIN)
 - Credenciales hardcodeadas en `AuthService`.
@@ -264,6 +280,7 @@ PropBot también está disponible en el portal con contexto personalizado del cl
 ## Persistencia de datos
 
 El sistema persiste automáticamente todos los datos en archivos JSON dentro de `/data/` al apagar el servidor (`@PreDestroy`), y los restaura al volver a arrancar (`CommandLineRunner`).
+
 La carpeta es configurable con la variable `PROPTECH_DATA_DIR` (por defecto `data/`). En el plan gratuito de Render el disco es efímero, por lo que los datos no sobreviven a un reinicio.
 
 ```
@@ -293,8 +310,10 @@ data/
 | Lombok | — | Reducción de boilerplate |
 | SpringDoc OpenAPI | 2.5.0 | Documentación Swagger UI |
 | Jackson JSR310 | — | Serialización de fechas ISO-8601 |
+| JUnit 5 + MockMvc | — | Pruebas |
 | Maven | 3.9.x | Gestión de dependencias |
-| Docker | — | Empaquetado del backend para Render |. En Frontend, añade | Vercel | — | Hosting del SPA |
+| Docker | — | Empaquetado del backend |
+| Render | — | Hosting del backend (plan gratuito) |
 
 ### Frontend
 | Tecnología | Versión | Rol |
@@ -304,7 +323,8 @@ data/
 | Angular CDK | 17 | Componentes base |
 | RxJS | ~7.8 | Programación reactiva |
 | SCSS | — | Estilos |
-| Node.js | ≥18 | Entorno de ejecución |
+| Node.js | ≥18.13 (Vercel usa 22.x) | Entorno de ejecución |
+| Vercel | — | Hosting del SPA |
 
 ### Inteligencia Artificial
 | Tecnología | Rol |
@@ -318,7 +338,7 @@ data/
 
 - **Java 21** o superior
 - **Maven 3.9** o superior (o usar el wrapper `./mvnw`)
-- **Node.js 18** o superior
+- **Node.js 18.13** o superior
 - **Angular CLI 17** (`npm install -g @angular/cli@17`)
 - **Clave de API de OpenRouter** (opcional, necesaria para activar PropBot)
 
@@ -394,6 +414,7 @@ Disponible en `http://localhost:4200`. El proxy redirige automáticamente `/api/
 | dani@gmail.com | 1001234560 |
 
 ---
+
 ## Despliegue
 
 | Parte | Plataforma | Configuración |
@@ -432,6 +453,7 @@ Ningún secreto está en el repositorio: la clave solo existe como variable de e
 - El sistema de archivos es efímero: `data/` se pierde al reiniciar, hacer redeploy o dormirse, y el `DataLoader` vuelve a cargar los datos de prueba. Para conservar los datos hace falta un disco persistente (plan de pago) con `PROPTECH_DATA_DIR=/var/data/`.
 - La API no tiene autenticación real y las cuentas de administrador están en `AuthService`, así que es adecuada para una demo académica, no para producción.
 
+---
 
 ## Endpoints de la API REST
 
@@ -543,6 +565,7 @@ Ningún secreto está en el repositorio: la clave solo existe como variable de e
 | Método | Ruta | Descripción |
 |---|---|---|
 | `POST` | `/api/chatbot/completions` | Proxy hacia OpenRouter (modelo y `max_tokens` forzados por el servidor) |
+
 ---
 
 ## Diagrama de entidades
@@ -585,7 +608,7 @@ Al iniciar la aplicación por primera vez, el `DataLoader` inserta automáticame
 | Visitas | 10 (pasadas y recientes) |
 | Operaciones | 4 |
 
-Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSON en `/data/`, preservando todos los cambios realizados durante la sesión anterior.
+Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSON en `/data/`, preservando todos los cambios realizados durante la sesión anterior (en local; en el plan gratuito de Render el disco es efímero y los datos de prueba se recargan tras cada reinicio).
 
 ---
 
@@ -599,60 +622,82 @@ Desde la segunda ejecución en adelante, el sistema carga desde los archivos JSO
 ├── mvnw / mvnw.cmd                  # Maven Wrapper
 ├── data/                            # Datos persistidos en JSON (se genera en runtime)
 ├── src/
-│   └── main/java/.../PropTech/
-│       ├── config/
-│       │   ├── DataLoader.java      # Carga/restaura datos al iniciar
-│       │   ├── JacksonConfig.java   # Fechas ISO-8601
-│       │   ├── OpenApiConfig.java   # Swagger UI
-│       │   └── WebConfig.java       # CORS
-│       ├── controller/              # Endpoints REST
-│       ├── exception/               # Jerarquía de excepciones + handler global
-│       ├── model/
-│       │   ├── dto/                 # DTOs de entrada
-│       │   ├── entity/              # Entidades del dominio
-│       │   └── enums/               # Tipos enumerados
-│       ├── repository/              # Repositorios con estructuras de datos
-│       ├── service/                 # Lógica de negocio
-│       │   ├── PlataformaBeta.java  # Orquestador principal
-│       │   └── PersistenciaService.java # Guardar/restaurar en JSON
-│       ├── structures/              # Implementaciones propias (sin java.util)
-│       │   ├── AVLTree.java
-│       │   ├── Graph.java
-│       │   ├── HashTable.java
-│       │   ├── Node.java
-│       │   ├── PriorityQueue.java
-│       │   ├── Queue.java
-│       │   ├── SimpleLinkedList.java
-│       │   └── Stack.java
-│       └── util/
-│           └── ApiError.java        # Respuesta estándar de error
+│   ├── main/java/.../PropTech/
+│   │   ├── config/
+│   │   │   ├── DataLoader.java      # Carga/restaura datos al iniciar
+│   │   │   ├── JacksonConfig.java   # Fechas ISO-8601
+│   │   │   ├── OpenApiConfig.java   # Swagger UI
+│   │   │   └── WebConfig.java       # CORS por variable de entorno
+│   │   ├── controller/              # Endpoints REST (incluye ChatbotController)
+│   │   ├── exception/               # Jerarquía de excepciones + handler global
+│   │   ├── model/
+│   │   │   ├── dto/                 # DTOs de entrada
+│   │   │   ├── entity/              # Entidades del dominio
+│   │   │   └── enums/               # Tipos enumerados
+│   │   ├── repository/              # Repositorios con estructuras de datos
+│   │   ├── service/                 # Lógica de negocio
+│   │   │   ├── PlataformaBeta.java  # Orquestador principal
+│   │   │   ├── PersistenciaService.java # Guardar/restaurar en JSON
+│   │   │   └── ChatbotProxyService.java # Proxy hacia OpenRouter
+│   │   ├── structures/              # Implementaciones propias (sin java.util)
+│   │   │   ├── AVLTree.java
+│   │   │   ├── Graph.java
+│   │   │   ├── HashTable.java
+│   │   │   ├── Node.java
+│   │   │   ├── PriorityQueue.java
+│   │   │   ├── Queue.java
+│   │   │   ├── SimpleLinkedList.java
+│   │   │   └── Stack.java
+│   │   └── util/
+│   │       └── ApiError.java        # Respuesta estándar de error
+│   └── test/java/.../PropTech/      # Pruebas (CORS, chatbot, persistencia, contexto)
 └── frontend/
-    ├── src/app/
-    │   ├── core/
-    │   │   ├── models/              # Interfaces TypeScript
-    │   │   ├── services/            # Servicios HTTP (uno por entidad)
-    │   │   │   └── chatbot.service.ts  # Servicio PropBot (OpenRouter)
-    │   │   ├── guards/              # authGuard + adminGuard
-    │   │   └── interceptors/        # Error interceptor global
-    │   ├── shared/
-    │   │   └── chatbot/             # Componente PropBot (HTML + SCSS + TS)
-    │   └── features/                # Componentes por módulo
-    │       ├── login/               # Pantalla de login y registro
-    │       ├── dashboard/
-    │       ├── inmuebles/
-    │       ├── clientes/
-    │       ├── asesores/
-    │       ├── visitas/
-    │       ├── operaciones/
-    │       ├── alertas/
-    │       ├── eventos/
-    │       ├── recomendaciones/
-    │       ├── grafo/
-    │       └── cliente-portal/      # Portal exclusivo para usuarios CLIENTE
+    ├── src/
+    │   ├── app/
+    │   │   ├── core/
+    │   │   │   ├── models/          # Interfaces TypeScript
+    │   │   │   ├── services/        # Servicios HTTP (uno por entidad)
+    │   │   │   │   └── chatbot.service.ts  # Servicio PropBot (vía backend)
+    │   │   │   ├── guards/          # authGuard + adminGuard
+    │   │   │   └── interceptors/    # Error interceptor global
+    │   │   ├── shared/
+    │   │   │   └── chatbot/         # Componente PropBot (HTML + SCSS + TS)
+    │   │   └── features/            # Componentes por módulo
+    │   │       ├── login/           # Pantalla de login y registro
+    │   │       ├── dashboard/
+    │   │       ├── inmuebles/
+    │   │       ├── clientes/
+    │   │       ├── asesores/
+    │   │       ├── visitas/
+    │   │       ├── operaciones/
+    │   │       ├── alertas/
+    │   │       ├── eventos/
+    │   │       ├── recomendaciones/
+    │   │       ├── grafo/
+    │   │       └── cliente-portal/  # Portal exclusivo para usuarios CLIENTE
+    │   └── environments/            # environment.ts (dev) y environment.prod.ts
     ├── proxy.conf.json              # Proxy /api → localhost:8080
     ├── vercel.json
     └── angular.json
 ```
+
+---
+
+## Pruebas
+
+El backend incluye pruebas con JUnit 5, Mockito y MockMvc:
+
+```bash
+./mvnw test
+```
+
+| Prueba | Qué verifica |
+|---|---|
+| `PropTechApplicationTests` | El contexto de Spring arranca |
+| `WebConfigCorsTest` | El preflight `PATCH` pasa desde el origen permitido y se rechaza desde otro |
+| `PersistenciaServiceDirTest` | La carpeta configurada en `PROPTECH_DATA_DIR` se crea aunque no termine en `/` |
+| `ChatbotProxyServiceTest` | El proxy fuerza el modelo y limita `max_tokens` |
+| `ChatbotControllerTest` | El endpoint responde `200`, `503` (sin clave) o `502` (falla del proveedor) |
 
 ---
 
@@ -684,7 +729,7 @@ Todas las respuestas de error siguen el formato:
 }
 ```
 
-El frontend captura todos los errores HTTP de la API (tanto en local como en producción) mediante ErrorInterceptor y los muestra como notificaciones toast en la esquina superior derecha.
+El frontend captura todos los errores HTTP de la API (tanto en local como en producción) mediante `ErrorInterceptor` y los muestra como notificaciones toast en la esquina superior derecha.
 
 ---
 
